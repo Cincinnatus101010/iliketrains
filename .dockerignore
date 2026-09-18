@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+server/.raildata-token.json
+.git
+.DS_Store
+*.tsbuildinfo
