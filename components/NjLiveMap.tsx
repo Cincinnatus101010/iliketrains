@@ -16,17 +16,27 @@ type MapPadding = { top: number; bottom: number; left: number; right: number };
 
 type NjLiveMapProps = {
   trains: LiveTrain[];
+  trainsSignature: string;
   highlightLine: LineKey | null;
   padding: MapPadding;
   plannedRoute: [number, number][] | null;
+  plannedRouteFitKey: string | null;
 };
 
-export function NjLiveMap({ trains, highlightLine, padding, plannedRoute }: NjLiveMapProps) {
+export function NjLiveMap({
+  trains,
+  trainsSignature,
+  highlightLine,
+  padding,
+  plannedRoute,
+  plannedRouteFitKey,
+}: NjLiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GameMap | null>(null);
   const engineRef = useRef<TrackEngine | null>(null);
   const markersRef = useRef<TrainMarkerController | null>(null);
   const layersReady = useRef(false);
+  const lastRouteFitKeyRef = useRef<string | null>(null);
   const trainsRef = useRef(trains);
   trainsRef.current = trains;
 
@@ -125,7 +135,7 @@ export function NjLiveMap({ trains, highlightLine, padding, plannedRoute }: NjLi
   useEffect(() => {
     if (!engineRef.current?.ready || !markersRef.current) return;
     markersRef.current.sync(trains);
-  }, [trains]);
+  }, [trains, trainsSignature]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -136,6 +146,7 @@ export function NjLiveMap({ trains, highlightLine, padding, plannedRoute }: NjLi
     if (!source) return;
 
     if (!plannedRoute || plannedRoute.length < 2) {
+      lastRouteFitKeyRef.current = null;
       source.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } });
       return;
     }
@@ -146,6 +157,9 @@ export function NjLiveMap({ trains, highlightLine, padding, plannedRoute }: NjLi
       geometry: { type: "LineString", coordinates: plannedRoute },
     });
 
+    if (!plannedRouteFitKey || plannedRouteFitKey === lastRouteFitKeyRef.current) return;
+    lastRouteFitKeyRef.current = plannedRouteFitKey;
+
     const lons = plannedRoute.map((c) => c[0]);
     const lats = plannedRoute.map((c) => c[1]);
     map.fitBounds(
@@ -155,7 +169,7 @@ export function NjLiveMap({ trains, highlightLine, padding, plannedRoute }: NjLi
       ],
       { padding: 48, duration: 900, maxZoom: 14 },
     );
-  }, [plannedRoute]);
+  }, [plannedRoute, plannedRouteFitKey]);
 
   return <div ref={containerRef} className="nj-map" aria-label="NYC and NJ live transit map" />;
 }

@@ -7,10 +7,16 @@ import { fetchNjTrains } from "@/lib/fetchNjTrains";
 import { fetchSubwayTrains } from "@/lib/fetchSubwayTrains";
 import { lineKey, parseLineKey, trainMatchesLineKey, type LineKey } from "@/lib/lineKey";
 import type { MapScope } from "@/lib/types";
-import type { PlannedRoute } from "@/lib/trip/types";
+import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
+import { readSavedTrip, writeSavedTrip, type SavedTrip } from "@/lib/trip/savedTrip";
+import { ActiveTripCard } from "./ActiveTripCard";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
-import { NavigationSheet } from "./NavigationSheet";
+
+const NavigationSheet = dynamic(
+  () => import("./NavigationSheet").then((m) => m.NavigationSheet),
+  { ssr: false },
+);
 
 const NjLiveMap = dynamic(() => import("./NjLiveMap").then((m) => m.NjLiveMap), {
   ssr: false,
@@ -30,7 +36,8 @@ export function HomeClient({ coordinator }: HomeClientProps) {
   const [scope, setScope] = useState<MapScope>("all");
   const [activeLine, setActiveLine] = useState<LineKey | null>(null);
   const [navOpen, setNavOpen] = useState(false);
-  const [plannedRoute, setPlannedRoute] = useState<PlannedRoute | null>(null);
+  const [savedTrip, setSavedTrip] = useState<SavedTrip | null>(null);
+  const [tripHydrated, setTripHydrated] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(true);
   const [linesOpen, setLinesOpen] = useState(false);
 
@@ -46,6 +53,16 @@ export function HomeClient({ coordinator }: HomeClientProps) {
     isLoading: subwayLoading,
     isValidating: subwayValidating,
   } = useSteddy(SUBWAY_KEY, fetchSubwayTrains, { staleTime: SUBWAY_POLL_MS });
+
+  useEffect(() => {
+    setSavedTrip(readSavedTrip());
+    setTripHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!tripHydrated) return;
+    writeSavedTrip(savedTrip);
+  }, [savedTrip, tripHydrated]);
 
   useEffect(() => {
     if (!activeLine) return;
@@ -88,6 +105,13 @@ export function HomeClient({ coordinator }: HomeClientProps) {
     [scopedTrains, activeLine],
   );
 
+  const mapTrainsSignature = useMemo(() => trainPositionsSignature(visibleTrains), [visibleTrains]);
+
+  const plannedRouteCoords = savedTrip?.route.coordinatesLonLat ?? null;
+  const plannedRouteFitKey = savedTrip
+    ? `${savedTrip.fromKey}:${savedTrip.toKey}:${savedTrip.savedAt}`
+    : null;
+
   const lineCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const t of scopedTrains) {
@@ -123,27 +147,53 @@ export function HomeClient({ coordinator }: HomeClientProps) {
     <div
       className={`app-frame troisi-root ${bottomCollapsed ? "app-frame--bottom-collapsed" : ""}`}
     >
+      <div className="map-top-controls">
+        <button
+          type="button"
+          className="map-top-controls-btn glass"
+          aria-expanded={linesOpen}
+          onClick={() => setLinesOpen(true)}
+        >
+          Lines
+          {activeLine && (
+            <span className="map-top-controls-active">{parseLineKey(activeLine)?.route ?? "1"}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          className={`map-top-controls-btn glass ${!bottomCollapsed ? "map-top-controls-btn--on" : ""}`}
+          aria-expanded={!bottomCollapsed}
+          aria-label={bottomCollapsed ? "Show trains panel" : "Collapse trains panel"}
+          onClick={() => setBottomCollapsed((c) => !c)}
+        >
+          Trains
+          <span className="map-top-controls-chevron" aria-hidden>
+            {bottomCollapsed ? "▲" : "▼"}
+          </span>
+        </button>
+        <span className="map-top-controls-meta glass">
+          {validating && <span className="bottom-pane-live-dot" aria-label="Updating" />}
+          <span className="map-top-controls-count">{scopedTrains.length} live</span>
+        </span>
+      </div>
+
       <section className="map-pane" aria-label="Map">
         <NjLiveMap
           trains={visibleTrains}
+          trainsSignature={mapTrainsSignature}
           highlightLine={activeLine}
           padding={mapPadding}
-          plannedRoute={plannedRoute?.coordinatesLonLat ?? null}
+          plannedRoute={plannedRouteCoords}
+          plannedRouteFitKey={plannedRouteFitKey}
         />
 
-        <div className="map-pane-chrome">
-          <button
-            type="button"
-            className="lines-filter-trigger glass"
-            aria-expanded={linesOpen}
-            onClick={() => setLinesOpen(true)}
-          >
-            <span className="lines-filter-trigger-label">Lines</span>
-            {activeLine && (
-              <span className="lines-filter-trigger-active">{parseLineKey(activeLine)?.route ?? "1"}</span>
-            )}
-          </button>
-        </div>
+        {savedTrip && (
+          <ActiveTripCard
+            trip={savedTrip}
+            onEdit={() => setNavOpen(true)}
+            onEnd={() => setSavedTrip(null)}
+          />
+        )}
 
         {!njConfigured && (
           <div className="map-pane-alert glass" role="status">
@@ -174,35 +224,6 @@ export function HomeClient({ coordinator }: HomeClientProps) {
         aria-label="Live trains"
         aria-expanded={!bottomCollapsed}
       >
-        <div className="bottom-pane-toolbar">
-          <div className="bottom-pane-toolbar-actions">
-            <button
-              type="button"
-              className="bottom-pane-toolbar-btn bottom-pane-toolbar-btn--lines"
-              aria-expanded={linesOpen}
-              onClick={() => setLinesOpen(true)}
-            >
-              Lines
-            </button>
-            <button
-              type="button"
-              className="bottom-pane-toolbar-btn bottom-pane-toolbar-btn--panel"
-              aria-expanded={!bottomCollapsed}
-              aria-label={bottomCollapsed ? "Show trains panel" : "Collapse trains panel"}
-              onClick={() => setBottomCollapsed((c) => !c)}
-            >
-              Trains
-              <span className="bottom-pane-toolbar-btn-chevron" aria-hidden>
-                {bottomCollapsed ? "▲" : "▼"}
-              </span>
-            </button>
-          </div>
-          <span className="bottom-pane-toolbar-meta">
-            {validating && <span className="bottom-pane-live-dot" aria-label="Updating" />}
-            <span className="bottom-pane-toolbar-count">{scopedTrains.length} live</span>
-          </span>
-        </div>
-
         {!bottomCollapsed && (
           <DockPanel
             trains={scopedTrains}
@@ -228,8 +249,9 @@ export function HomeClient({ coordinator }: HomeClientProps) {
       <NavigationSheet
         open={navOpen}
         onClose={() => setNavOpen(false)}
-        onRoute={(route) => setPlannedRoute(route)}
-        onClearRoute={() => setPlannedRoute(null)}
+        initialTrip={savedTrip}
+        onStartTrip={(trip) => setSavedTrip(trip)}
+        onEndTrip={() => setSavedTrip(null)}
       />
     </div>
   );

@@ -42,17 +42,23 @@ export async function loadTripGraph(): Promise<TripGraph | null> {
   return inflight;
 }
 
+let cachedStationList: { key: string; name: string; network: "mta" | "njt" }[] | null = null;
+
 export async function listPlanStations(): Promise<
   { key: string; name: string; network: "mta" | "njt" }[]
 > {
+  if (cachedStationList) return cachedStationList;
+
   const graph = await loadTripGraph();
   if (!graph) return [];
 
-  return [...graph.nodes.entries()]
+  cachedStationList = [...graph.nodes.entries()]
     .map(([key, n]) => ({
       key,
       name: n.name,
       network: (n.network === "njt" ? "njt" : "mta") as "mta" | "njt",
     }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+
+  return cachedStationList;
 }

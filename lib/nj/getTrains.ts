@@ -2,9 +2,14 @@ import { config, njConfigured } from "./config";
 import { getLastTokenError, getNjToken } from "./tokenService";
 import { parseVehicle } from "./parseVehicles";
 import { enrichLiveTrainsWithTracks } from "./enrichTracks";
+import { withTrainsCache } from "./getTrainsCache";
 import type { TrainsResponse } from "@/lib/types";
 
 export async function getTrainsResponse(): Promise<TrainsResponse> {
+  return withTrainsCache(fetchTrainsFresh);
+}
+
+async function fetchTrainsFresh(): Promise<TrainsResponse> {
   if (!njConfigured) {
     return {
       trains: [],

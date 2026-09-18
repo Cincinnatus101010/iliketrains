@@ -87,18 +87,30 @@ export function distanceToStopM(lat: number, lon: number, stopName: string): num
   return haversineM(lat, lon, coords.lat, coords.lon);
 }
 
+const nearestStopCache = new Map<string, { name: string; distanceM: number } | null>();
+
 export function findNearestStop(
   lat: number,
   lon: number,
   maxM = 450,
 ): { name: string; distanceM: number } | null {
+  const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)},${maxM}`;
+  const hit = nearestStopCache.get(cacheKey);
+  if (hit !== undefined) return hit;
+
+  const deg = maxM / 111_320;
   let best: { name: string; distanceM: number } | null = null;
   for (const stop of stopList) {
+    if (Math.abs(stop.lat - lat) > deg) continue;
+    if (Math.abs(stop.lon - lon) > deg) continue;
     const distanceM = haversineM(lat, lon, stop.lat, stop.lon);
     if (distanceM > maxM) continue;
     if (!best || distanceM < best.distanceM) {
       best = { name: stop.name, distanceM };
     }
   }
+
+  if (nearestStopCache.size > 512) nearestStopCache.clear();
+  nearestStopCache.set(cacheKey, best);
   return best;
 }

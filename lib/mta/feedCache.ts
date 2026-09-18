@@ -31,24 +31,32 @@ async function fetchFeed(url: string): Promise<FeedEntity[]> {
   return decodeFeed(await response.arrayBuffer());
 }
 
+async function refreshFeeds(): Promise<FeedEntity[]> {
+  const batches = await Promise.all(MTA_SUBWAY_FEED_URLS.map((url) => fetchFeed(url)));
+  entities = batches.flat();
+  fetchedAt = Date.now();
+  return entities;
+}
+
 export async function getMtaFeedEntities(): Promise<FeedEntity[]> {
   const now = Date.now();
-  if (now - fetchedAt < CACHE_TTL_MS && entities.length > 0) {
-    return entities;
-  }
+  const fresh = now - fetchedAt < CACHE_TTL_MS && entities.length > 0;
+  if (fresh) return entities;
 
   if (inflight) return inflight;
 
-  inflight = (async () => {
-    try {
-      const batches = await Promise.all(MTA_SUBWAY_FEED_URLS.map((url) => fetchFeed(url)));
-      entities = batches.flat();
-      fetchedAt = Date.now();
-      return entities;
-    } finally {
-      inflight = null;
-    }
-  })();
+  if (entities.length > 0) {
+    inflight = refreshFeeds()
+      .catch(() => entities)
+      .finally(() => {
+        inflight = null;
+      });
+    return entities;
+  }
+
+  inflight = refreshFeeds().finally(() => {
+    inflight = null;
+  });
 
   return inflight;
 }

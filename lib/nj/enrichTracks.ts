@@ -58,11 +58,14 @@ export async function enrichLiveTrainsWithTracks(
 
   const stations = await fetchStationList(token);
   const codesNeeded = new Set<string>();
+  const contextById = new Map<string, { code: string; name: string }>();
 
   for (const train of trains) {
     if (!train.trainNumber) continue;
     const ctx = stationContextForTrain(train, stations);
-    if (ctx) codesNeeded.add(ctx.code);
+    if (!ctx) continue;
+    contextById.set(train.id, ctx);
+    codesNeeded.add(ctx.code);
   }
 
   const codes = [...codesNeeded];
@@ -76,7 +79,7 @@ export async function enrichLiveTrainsWithTracks(
   return trains.map((train) => {
     if (!train.trainNumber) return train;
 
-    const ctx = stationContextForTrain(train, stations);
+    const ctx = contextById.get(train.id);
     if (!ctx) return train;
 
     const platformTrack = matchPlatformTrack(train.trainNumber, itemsByCode.get(ctx.code) ?? []);

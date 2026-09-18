@@ -1,5 +1,6 @@
 import maplibregl from "maplibre-gl";
 import type { LiveTrain, Network } from "@/lib/types";
+import { trainVisualKey } from "./trainSyncKey";
 import { shortestTrackGap, TrackEngine, wrapTrackDist } from "./trackEngine";
 
 const GLIDE_MIN_GAP_M = 25;
@@ -19,6 +20,8 @@ type TrackMarkerState = {
   animStart: number;
   animDuration: number;
   missedPolls: number;
+  visualKey: string;
+  motionKey: string;
 };
 
 function animationDurationForGap(gapM: number, network: Network): number {
@@ -106,15 +109,31 @@ export class TrainMarkerController {
         animStart: 0,
         animDuration: 0,
         missedPolls: 0,
+        visualKey: "",
+        motionKey: "",
       };
+      state.visualKey = trainVisualKey(train);
+      state.motionKey = `${train.latitude.toFixed(5)},${train.longitude.toFixed(5)}`;
       this.states.set(train.id, state);
       this.refreshMarkerVisual(state);
       return;
     }
 
     state.missedPolls = 0;
+
+    const motionKey = `${train.latitude.toFixed(5)},${train.longitude.toFixed(5)}`;
+    const visualKey = trainVisualKey(train);
+    const motionUnchanged = motionKey === state.motionKey;
+    const visualUnchanged = visualKey === state.visualKey;
+
     state.train = train;
-    this.refreshMarkerVisual(state);
+    if (!visualUnchanged) this.refreshMarkerVisual(state);
+    state.visualKey = visualKey;
+
+    if (motionUnchanged && target.trackDist != null && state.targetTrackDist === target.trackDist) {
+      return;
+    }
+    state.motionKey = motionKey;
 
     if (target.trackDist == null) {
       state.trackDist = null;
