@@ -5,11 +5,12 @@ import { useSteddy } from "steddy";
 import { Typography } from "@iantroisi/ui";
 import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
 import { formatNjDateTime } from "@/lib/formatTime";
+import { parseLineKey, type LineKey } from "@/lib/lineKey";
 import { lineName } from "@/lib/nj/lines";
 import type { NjStation } from "@/lib/types";
 
 type SchedulePanelProps = {
-  activeLine: string | null;
+  activeLine: LineKey | null;
 };
 
 const DEFAULT_STATION = "NP";
@@ -38,11 +39,17 @@ export function SchedulePanel({ activeLine }: SchedulePanelProps) {
     staleTime: 60_000,
   });
 
+  const njRouteFilter = useMemo(() => {
+    const parsed = parseLineKey(activeLine);
+    if (!parsed || parsed.network !== "njt") return null;
+    return parsed.route;
+  }, [activeLine]);
+
   const items = useMemo(() => {
     const list = data?.items ?? [];
-    if (!activeLine) return list;
-    return list.filter((i) => i.lineAbbrev.toUpperCase() === activeLine.toUpperCase());
-  }, [data?.items, activeLine]);
+    if (!njRouteFilter) return list;
+    return list.filter((i) => i.lineAbbrev.toUpperCase() === njRouteFilter.toUpperCase());
+  }, [data?.items, njRouteFilter]);
 
   return (
     <div className="train-panel-inner">

@@ -1,5 +1,8 @@
-export type NjTrain = {
+export type Network = "mta" | "njt";
+
+export type LiveTrain = {
   id: string;
+  network: Network;
   route: string;
   lineName: string;
   label: string;
@@ -7,6 +10,10 @@ export type NjTrain = {
   longitude: number;
   color: string;
   stopName: string | null;
+  /** MTA GTFS stop_id (platform suffix) */
+  stopId?: string | null;
+  /** MTA parent station id for stable anchoring */
+  anchorStopId?: string | null;
   trainNumber: string | null;
   direction: string | null;
   trackCircuit: string | null;
@@ -16,12 +23,24 @@ export type NjTrain = {
   inMotion: boolean;
 };
 
+/** @deprecated Use LiveTrain */
+export type NjTrain = LiveTrain;
+
 export type TrainsResponse = {
-  trains: NjTrain[];
+  trains: LiveTrain[];
   error: string | null;
   configured: boolean;
   updatedAt?: string;
 };
+
+export type SubwayResponse = {
+  trains: LiveTrain[];
+  error: string | null;
+  configured: boolean;
+  updatedAt?: string;
+};
+
+export type MapScope = "all" | "mta" | "njt";
 
 export type NjStation = {
   code: string;

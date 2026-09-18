@@ -1,35 +1,96 @@
-import type { NjTrain } from "@/lib/types";
+import type { LiveTrain } from "@/lib/types";
 import type { ScheduleDeparture } from "@/lib/types";
+import { findNearestStop } from "./stopIndex";
 import { fetchStationList, resolveStationCode } from "./stations";
 import { fetchStationSchedule, matchPlatformTrack } from "./schedule";
 
-export async function enrichLiveTrainsWithTracks(trains: NjTrain[], token: string): Promise<NjTrain[]> {
+const scheduleCache = new Map<string, { at: number; items: ScheduleDeparture[] }>();
+const SCHEDULE_CACHE_MS = 25_000;
+const FETCH_CONCURRENCY = 6;
+
+async function getScheduleItems(token: string, stationCode: string): Promise<ScheduleDeparture[]> {
+  const cached = scheduleCache.get(stationCode);
+  if (cached && Date.now() - cached.at < SCHEDULE_CACHE_MS) {
+    return cached.items;
+  }
+  const res = await fetchStationSchedule(token, stationCode);
+  scheduleCache.set(stationCode, { at: Date.now(), items: res.items });
+  return res.items;
+}
+
+async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+
+  async function worker(): Promise<void> {
+    while (index < items.length) {
+      const i = index++;
+      results[i] = await fn(items[i]!);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  return results;
+}
+
+function stationContextForTrain(
+  train: LiveTrain,
+  stations: Awaited<ReturnType<typeof fetchStationList>>,
+): { code: string; name: string } | null {
+  if (train.stopName?.trim()) {
+    const code = resolveStationCode(train.stopName, stations);
+    if (code) return { code, name: train.stopName.trim() };
+  }
+
+  const near = findNearestStop(train.latitude, train.longitude);
+  if (!near) return null;
+
+  const code = resolveStationCode(near.name, stations);
+  if (!code) return null;
+  return { code, name: near.name };
+}
+
+export async function enrichLiveTrainsWithTracks(
+  trains: LiveTrain[],
+  token: string,
+): Promise<LiveTrain[]> {
   if (trains.length === 0) return trains;
 
   const stations = await fetchStationList(token);
   const codesNeeded = new Set<string>();
 
   for (const train of trains) {
-    if (!train.trainNumber || !train.stopName) continue;
-    const code = resolveStationCode(train.stopName, stations);
-    if (code) codesNeeded.add(code);
+    if (!train.trainNumber) continue;
+    const ctx = stationContextForTrain(train, stations);
+    if (ctx) codesNeeded.add(ctx.code);
   }
 
-  const scheduleCache = new Map<string, ScheduleDeparture[]>();
-  const codes = [...codesNeeded].slice(0, 12);
-  await Promise.all(
-    codes.map(async (code) => {
-      const res = await fetchStationSchedule(token, code);
-      scheduleCache.set(code, res.items);
-    }),
-  );
+  const codes = [...codesNeeded];
+  const itemsByCode = new Map<string, ScheduleDeparture[]>();
+
+  await mapPool(codes, FETCH_CONCURRENCY, async (code) => {
+    const items = await getScheduleItems(token, code);
+    itemsByCode.set(code, items);
+  });
 
   return trains.map((train) => {
-    if (!train.trainNumber || !train.stopName) return train;
-    const code = resolveStationCode(train.stopName, stations);
-    if (!code) return train;
-    const platformTrack = matchPlatformTrack(train.trainNumber, scheduleCache.get(code) ?? []);
-    if (!platformTrack) return train;
-    return { ...train, platformTrack };
+    if (!train.trainNumber) return train;
+
+    const ctx = stationContextForTrain(train, stations);
+    if (!ctx) return train;
+
+    const platformTrack = matchPlatformTrack(train.trainNumber, itemsByCode.get(ctx.code) ?? []);
+    if (!platformTrack) {
+      if (!train.stopName && ctx.name) {
+        return { ...train, stopName: ctx.name };
+      }
+      return train;
+    }
+
+    return {
+      ...train,
+      stopName: train.stopName ?? ctx.name,
+      platformTrack,
+    };
   });
 }

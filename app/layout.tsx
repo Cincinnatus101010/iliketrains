@@ -5,8 +5,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NJ Rail Live · iliketrains",
-  description: "NJ Transit live rail map — Next.js, steddy, Troisi UI, sickmaps",
+  title: "NYC Subway & NJ Rail · iliketrains",
+  description: "Live NYC Subway and NJ Transit map — Next.js, steddy, Troisi UI, sickmaps",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

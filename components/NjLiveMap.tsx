@@ -3,30 +3,44 @@
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
-import type { NjTrain } from "@/lib/types";
+import { parseLineKey, type LineKey } from "@/lib/lineKey";
+import { observeMapContainerResize } from "@/lib/map/mapResize";
+import { TrackEngine } from "@/lib/map/trackEngine";
+import { TrainMarkerController } from "@/lib/map/trainMarkerController";
+import type { LiveTrain } from "@/lib/types";
 
-const CENTER: [number, number] = [-74.35, 40.65];
-const ZOOM = 8.35;
+const CENTER: [number, number] = [-74.02, 40.72];
+const ZOOM = 9.1;
 
 type MapPadding = { top: number; bottom: number; left: number; right: number };
 
 type NjLiveMapProps = {
-  trains: NjTrain[];
-  highlightLine: string | null;
+  trains: LiveTrain[];
+  highlightLine: LineKey | null;
   padding: MapPadding;
+  plannedRoute: [number, number][] | null;
 };
 
-export function NjLiveMap({ trains, highlightLine, padding }: NjLiveMapProps) {
+export function NjLiveMap({ trains, highlightLine, padding, plannedRoute }: NjLiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GameMap | null>(null);
-  const markersRef = useRef(new Map<string, maplibregl.Marker>());
+  const engineRef = useRef<TrackEngine | null>(null);
+  const markersRef = useRef<TrainMarkerController | null>(null);
   const layersReady = useRef(false);
+  const trainsRef = useRef(trains);
+  trainsRef.current = trains;
 
   useEffect(() => {
     let cancelled = false;
+    let stopResizeObserve: (() => void) | null = null;
+    let stopViewListeners: (() => void) | null = null;
+    const engine = new TrackEngine();
+    engineRef.current = engine;
 
     async function init() {
       if (!containerRef.current || mapRef.current) return;
+
+      await engine.loadFromUrls(["/data/subway-tracks.geojson", "/data/nj-rail-tracks.geojson"]);
 
       const map = await createGameMap(maplibregl, {
         theme: "gta-v",
@@ -41,13 +55,30 @@ export function NjLiveMap({ trains, highlightLine, padding }: NjLiveMapProps) {
         return;
       }
 
-      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
       mapRef.current = map;
 
+      const controller = new TrainMarkerController(map, engine);
+      markersRef.current = controller;
+
+      const onViewSettled = () => {
+        controller.refreshPositions();
+      };
+      map.on("zoomend", onViewSettled);
+      map.on("moveend", onViewSettled);
+      map.on("pitchend", onViewSettled);
+      stopViewListeners = () => {
+        map.off("zoomend", onViewSettled);
+        map.off("moveend", onViewSettled);
+        map.off("pitchend", onViewSettled);
+      };
+
       const onLoad = () => {
-        void installRailLayers(map).then(() => {
+        void installTrackLayers(map).then(() => {
+          ensurePlannedRouteLayer(map);
           layersReady.current = true;
           applyLineHighlight(map, highlightLine);
+          controller.sync(trainsRef.current);
         });
       };
 
@@ -55,6 +86,11 @@ export function NjLiveMap({ trains, highlightLine, padding }: NjLiveMapProps) {
       if (map.isStyleLoaded()) {
         onLoad();
       }
+
+      stopResizeObserve = observeMapContainerResize(containerRef.current, () => {
+        map.resize();
+        controller.refreshPositions();
+      });
     }
 
     void init();
@@ -62,8 +98,11 @@ export function NjLiveMap({ trains, highlightLine, padding }: NjLiveMapProps) {
     return () => {
       cancelled = true;
       layersReady.current = false;
-      for (const m of markersRef.current.values()) m.remove();
-      markersRef.current.clear();
+      stopViewListeners?.();
+      stopResizeObserve?.();
+      markersRef.current?.dispose();
+      markersRef.current = null;
+      engineRef.current = null;
       mapRef.current?.sickmapsTeardown?.();
       mapRef.current?.remove();
       mapRef.current = null;
@@ -84,93 +123,141 @@ export function NjLiveMap({ trains, highlightLine, padding }: NjLiveMapProps) {
   }, [highlightLine]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const seen = new Set<string>();
-    for (const train of trains) {
-      seen.add(train.id);
-      let marker = markersRef.current.get(train.id);
-
-      if (!marker) {
-        const el = document.createElement("button");
-        el.type = "button";
-        el.className = "map-train-marker";
-        const track = train.platformTrack ? ` · Trk ${train.platformTrack}` : "";
-        el.title = `${train.lineName}${train.direction ? ` · ${train.direction}` : ""} · Next ${train.label}${track}`;
-        el.style.background = train.color;
-        el.textContent = train.platformTrack ?? (train.route.length > 3 ? train.route.slice(0, 3) : train.route);
-        el.className = train.platformTrack ? "map-train-marker map-train-marker--track" : "map-train-marker";
-
-        marker = new maplibregl.Marker({ element: el, anchor: "center" })
-          .setLngLat([train.longitude, train.latitude])
-          .addTo(map);
-        markersRef.current.set(train.id, marker);
-      } else {
-        marker.setLngLat([train.longitude, train.latitude]);
-        const existing = marker.getElement() as HTMLButtonElement;
-        existing.style.background = train.color;
-        const track = train.platformTrack ? ` · Trk ${train.platformTrack}` : "";
-        existing.title = `${train.lineName}${train.direction ? ` · ${train.direction}` : ""} · Next ${train.label}${track}`;
-        existing.textContent = train.platformTrack ?? (train.route.length > 3 ? train.route.slice(0, 3) : train.route);
-        existing.className = train.platformTrack
-          ? "map-train-marker map-train-marker--track"
-          : "map-train-marker";
-      }
-    }
-
-    for (const [id, marker] of markersRef.current) {
-      if (!seen.has(id)) {
-        marker.remove();
-        markersRef.current.delete(id);
-      }
-    }
+    if (!engineRef.current?.ready || !markersRef.current) return;
+    markersRef.current.sync(trains);
   }, [trains]);
 
-  return <div ref={containerRef} className="nj-map" aria-label="NJ Transit live map" />;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !layersReady.current) return;
+
+    ensurePlannedRouteLayer(map);
+    const source = map.getSource("planned-route") as maplibregl.GeoJSONSource | undefined;
+    if (!source) return;
+
+    if (!plannedRoute || plannedRoute.length < 2) {
+      source.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } });
+      return;
+    }
+
+    source.setData({
+      type: "Feature",
+      properties: {},
+      geometry: { type: "LineString", coordinates: plannedRoute },
+    });
+
+    const lons = plannedRoute.map((c) => c[0]);
+    const lats = plannedRoute.map((c) => c[1]);
+    map.fitBounds(
+      [
+        [Math.min(...lons), Math.min(...lats)],
+        [Math.max(...lons), Math.max(...lats)],
+      ],
+      { padding: 48, duration: 900, maxZoom: 14 },
+    );
+  }, [plannedRoute]);
+
+  return <div ref={containerRef} className="nj-map" aria-label="NYC and NJ live transit map" />;
 }
 
-function applyLineHighlight(map: GameMap, highlightLine: string | null) {
-  if (!map.getLayer("nj-tracks-line")) return;
+function ensurePlannedRouteLayer(map: GameMap) {
+  if (map.getSource("planned-route")) return;
 
-  if (!highlightLine) {
-    map.setPaintProperty("nj-tracks-line", "line-opacity", 0.82);
-    map.setPaintProperty("nj-tracks-casing", "line-opacity", 0.45);
+  map.addSource("planned-route", {
+    type: "geojson",
+    data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
+  });
+  map.addLayer({
+    id: "planned-route-casing",
+    type: "line",
+    source: "planned-route",
+    layout: { "line-join": "round", "line-cap": "round" },
+    paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.85 },
+  });
+  map.addLayer({
+    id: "planned-route-line",
+    type: "line",
+    source: "planned-route",
+    layout: { "line-join": "round", "line-cap": "round" },
+    paint: { "line-color": "#fccc0a", "line-width": 4, "line-opacity": 1 },
+  });
+}
+
+function applyLineHighlight(map: GameMap, highlightLine: LineKey | null) {
+  const parsed = parseLineKey(highlightLine);
+
+  if (!parsed) {
+    setTrackOpacity(map, "subway-tracks-line", "subway-tracks-casing", null, true);
+    setTrackOpacity(map, "nj-tracks-line", "nj-tracks-casing", null, true);
     return;
   }
 
-  map.setPaintProperty("nj-tracks-line", "line-opacity", [
+  if (parsed.network === "mta") {
+    setTrackOpacity(map, "subway-tracks-line", "subway-tracks-casing", parsed.route, true);
+    setTrackOpacity(map, "nj-tracks-line", "nj-tracks-casing", null, false);
+  } else {
+    setTrackOpacity(map, "nj-tracks-line", "nj-tracks-casing", parsed.route, true);
+    setTrackOpacity(map, "subway-tracks-line", "subway-tracks-casing", null, false);
+  }
+}
+
+function setTrackOpacity(
+  map: GameMap,
+  lineLayer: string,
+  casingLayer: string,
+  route: string | null,
+  networkActive: boolean,
+) {
+  if (!map.getLayer(lineLayer)) return;
+
+  if (!route) {
+    if (networkActive) {
+      map.setPaintProperty(lineLayer, "line-opacity", 0.82);
+      map.setPaintProperty(casingLayer, "line-opacity", 0.45);
+    } else {
+      map.setPaintProperty(lineLayer, "line-opacity", 0.08);
+      map.setPaintProperty(casingLayer, "line-opacity", 0.04);
+    }
+    return;
+  }
+
+  map.setPaintProperty(lineLayer, "line-opacity", [
     "case",
-    ["==", ["get", "route"], highlightLine],
+    ["==", ["get", "route"], route],
     1,
-    0.1,
+    networkActive ? 0.1 : 0.06,
   ]);
-  map.setPaintProperty("nj-tracks-casing", "line-opacity", [
+  map.setPaintProperty(casingLayer, "line-opacity", [
     "case",
-    ["==", ["get", "route"], highlightLine],
+    ["==", ["get", "route"], route],
     0.55,
-    0.06,
+    networkActive ? 0.06 : 0.03,
   ]);
 }
 
-async function installRailLayers(map: GameMap) {
-  if (map.getSource("nj-tracks")) return;
+async function installTrackLayers(map: GameMap) {
+  await addGeoJsonLineLayer(map, "subway-tracks", "/data/subway-tracks.geojson");
+  await addGeoJsonLineLayer(map, "nj-tracks", "/data/nj-rail-tracks.geojson");
+}
 
-  const res = await fetch("/data/nj-rail-tracks.geojson");
+async function addGeoJsonLineLayer(map: GameMap, sourceId: string, url: string) {
+  if (map.getSource(sourceId)) return;
+
+  const res = await fetch(url);
   const data = await res.json();
 
-  map.addSource("nj-tracks", { type: "geojson", data });
+  map.addSource(sourceId, { type: "geojson", data });
   map.addLayer({
-    id: "nj-tracks-casing",
+    id: `${sourceId}-casing`,
     type: "line",
-    source: "nj-tracks",
+    source: sourceId,
     layout: { "line-join": "round", "line-cap": "round" },
     paint: { "line-color": "#0a0a0a", "line-width": 7, "line-opacity": 0.45 },
   });
   map.addLayer({
-    id: "nj-tracks-line",
+    id: `${sourceId}-line`,
     type: "line",
-    source: "nj-tracks",
+    source: sourceId,
     layout: { "line-join": "round", "line-cap": "round" },
     paint: {
       "line-color": ["coalesce", ["get", "color"], "#888"],

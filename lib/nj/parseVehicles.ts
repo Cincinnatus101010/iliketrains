@@ -1,6 +1,6 @@
 import { colorForRoute, routeFromApiLine } from "./njRoutes";
-import { tryGetCoordinates } from "./stopIndex";
-import type { NjTrain } from "@/lib/types";
+import { distanceToStopM, findNearestStop, tryGetCoordinates } from "./stopIndex";
+import type { LiveTrain } from "@/lib/types";
 
 function getString(row: Record<string, unknown>, key: string): string | null {
   const v = row[key];
@@ -45,7 +45,7 @@ function resolveLocation(
   return tryGetCoordinates(nextStop);
 }
 
-export function parseVehicle(row: Record<string, unknown>): NjTrain | null {
+export function parseVehicle(row: Record<string, unknown>): LiveTrain | null {
   const trainLine = getString(row, "TRAIN_LINE");
   const route = routeFromApiLine(trainLine);
   if (!route) return null;
@@ -61,18 +61,25 @@ export function parseVehicle(row: Record<string, unknown>): NjTrain | null {
 
   const lateMin = parseLateMinutes(getString(row, "SEC_LATE"));
   const status = statusLabel(lateMin);
-  const inMotion = Boolean(nextStop) || lateMin > 0;
-  const label = nextStop ?? status;
+  const nearStop = findNearestStop(loc.lat, loc.lon);
+  const stopName = nextStop ?? nearStop?.name ?? null;
+  const distToNamedStop = stopName ? distanceToStopM(loc.lat, loc.lon, stopName) : null;
+  const atStation =
+    (distToNamedStop != null && distToNamedStop < 400) ||
+    Boolean(!nextStop && nearStop && nearStop.distanceM < 350);
+  const inMotion = !atStation && (Boolean(nextStop) || lateMin > 0);
+  const label = stopName ?? status;
 
   return {
     id: `njt-${trainNumber ?? crypto.randomUUID().slice(0, 8)}`,
+    network: "njt",
     route,
     lineName: trainLine?.trim() ?? route,
     label,
     latitude: loc.lat,
     longitude: loc.lon,
     color: colorForRoute(route),
-    stopName: nextStop,
+    stopName,
     trainNumber,
     direction,
     trackCircuit,

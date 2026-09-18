@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { TrainPanel } from "./TrainPanel";
 import { SchedulePanel } from "./SchedulePanel";
-import type { NjTrain } from "@/lib/types";
+import type { LineKey } from "@/lib/lineKey";
+import type { LiveTrain } from "@/lib/types";
 
 type DockTab = "live" | "schedule";
 
 type DockPanelProps = {
-  trains: NjTrain[];
+  trains: LiveTrain[];
   loading: boolean;
   validating: boolean;
   updatedAt?: string;
-  activeLine: string | null;
+  activeLine: LineKey | null;
   onRefresh: () => void;
 };
 

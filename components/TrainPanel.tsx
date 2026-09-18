@@ -1,23 +1,57 @@
 "use client";
 
 import { Button, Typography } from "@iantroisi/ui";
+import { displayLineName } from "@/lib/displayLine";
 import { formatNjDateTime } from "@/lib/formatTime";
-import { lineName } from "@/lib/nj/lines";
-import type { NjTrain } from "@/lib/types";
+import { parseLineKey, trainMatchesLineKey, type LineKey } from "@/lib/lineKey";
+import { lineName as njLineName } from "@/lib/nj/lines";
+import { subwayLineName } from "@/lib/mta/lines";
+import type { LiveTrain } from "@/lib/types";
 
 type TrainPanelProps = {
-  trains: NjTrain[];
+  trains: LiveTrain[];
   loading: boolean;
   validating: boolean;
   updatedAt?: string;
-  activeLine: string | null;
+  activeLine: LineKey | null;
   onRefresh: () => void;
 };
 
-function trackLabel(train: NjTrain): string {
-  if (train.platformTrack) return `Platform track ${train.platformTrack}`;
-  if (train.trackCircuit) return `Circuit ${train.trackCircuit}`;
-  return "Track unknown";
+function njAtStation(train: LiveTrain): boolean {
+  if (!train.stopName) return false;
+  if (train.platformTrack) return true;
+  return !train.inMotion;
+}
+
+function njPrimaryLine(train: LiveTrain): string {
+  const station = train.stopName;
+  if (train.platformTrack && station) {
+    return `Track ${train.platformTrack} · ${station}`;
+  }
+  if (station && njAtStation(train)) {
+    return `At ${station}`;
+  }
+  const dir = train.direction ? `${train.direction} · ` : "";
+  return station ? `${dir}Next ${station}` : train.label;
+}
+
+function njSubLine(train: LiveTrain): string {
+  const parts: string[] = [train.status];
+  if (!train.platformTrack && train.trackCircuit) {
+    parts.push(`Circuit ${train.trackCircuit}`);
+  }
+  if (train.scheduledDeparture) {
+    parts.push(`Dep ${formatNjDateTime(train.scheduledDeparture)}`);
+  }
+  if (train.trainNumber) parts.push(`#${train.trainNumber}`);
+  return parts.join(" · ");
+}
+
+function panelTitle(activeLine: LineKey | null): string {
+  const parsed = parseLineKey(activeLine);
+  if (!parsed) return "All trains";
+  if (parsed.network === "mta") return subwayLineName(parsed.route);
+  return njLineName(parsed.route);
 }
 
 export function TrainPanel({
@@ -28,15 +62,20 @@ export function TrainPanel({
   activeLine,
   onRefresh,
 }: TrainPanelProps) {
-  const filtered = activeLine ? trains.filter((t) => t.route === activeLine) : trains;
-  const sorted = [...filtered].sort((a, b) => a.route.localeCompare(b.route) || a.label.localeCompare(b.label));
+  const filtered = trains.filter((t) => trainMatchesLineKey(t, activeLine));
+  const sorted = [...filtered].sort(
+    (a, b) =>
+      a.network.localeCompare(b.network) ||
+      a.route.localeCompare(b.route) ||
+      a.label.localeCompare(b.label),
+  );
 
   return (
-    <div className="train-panel-inner">
+    <div className="train-panel-inner train-panel-inner--bottom">
       <header className="panel-head">
         <div>
           <p className="panel-kicker">Live</p>
-          <h2 className="panel-title">{activeLine ? lineName(activeLine) : "All trains"}</h2>
+          <h2 className="panel-title">{panelTitle(activeLine)}</h2>
         </div>
         <Button size="sm" variant="ghost" onClick={onRefresh} disabled={loading}>
           {validating ? "…" : "Sync"}
@@ -61,20 +100,25 @@ export function TrainPanel({
             <div className="train-row">
               <span className="train-row-rail" style={{ background: train.color }} aria-hidden />
               <div className="train-row-body">
-                <span className="train-row-line">{train.lineName}</span>
+                <span className="train-row-line">
+                  {displayLineName(train)}
+                  <span className="train-row-network">{train.network === "mta" ? "NY" : "NJ"}</span>
+                </span>
                 <span className="train-row-stop">
-                  {train.direction ? `${train.direction} · ` : ""}
-                  Next {train.label}
+                  {train.network === "mta" ? train.label : njPrimaryLine(train)}
                 </span>
                 <span className="train-row-sub">
-                  {trackLabel(train)}
-                  {train.scheduledDeparture
-                    ? ` · Dep ${formatNjDateTime(train.scheduledDeparture)}`
-                    : ""}
-                  {train.trainNumber ? ` · #${train.trainNumber}` : ""}
+                  {train.network === "mta" ? train.status : njSubLine(train)}
                 </span>
               </div>
-              <span className="train-row-code">{train.route}</span>
+              <div className="train-row-aside">
+                {train.network === "njt" && train.platformTrack && (
+                  <span className="train-row-track" title="Platform track">
+                    Trk {train.platformTrack}
+                  </span>
+                )}
+                <span className="train-row-code">{train.route}</span>
+              </div>
             </div>
           </li>
         ))}

@@ -80,12 +80,19 @@ export async function fetchStationSchedule(
   };
 }
 
+function normalizeTrainId(id: string): string {
+  const trimmed = id.trim();
+  const num = Number.parseInt(trimmed, 10);
+  if (Number.isFinite(num)) return String(num);
+  return trimmed;
+}
+
 export function matchPlatformTrack(
   trainNumber: string | null | undefined,
   items: ScheduleDeparture[],
 ): string | null {
   if (!trainNumber?.trim()) return null;
-  const id = trainNumber.trim();
-  const hit = items.find((i) => i.trainId === id || i.trainId === id.padStart(4, "0"));
+  const id = normalizeTrainId(trainNumber);
+  const hit = items.find((i) => normalizeTrainId(i.trainId) === id);
   return hit?.track ?? null;
 }
