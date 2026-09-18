@@ -1,5 +1,7 @@
+"use client";
+
 import { Badge, Button, Card, Stack, Typography } from "@iantroisi/ui";
-import type { NjTrain } from "../types";
+import type { NjTrain } from "@/lib/types";
 
 type TrainPanelProps = {
   trains: NjTrain[];

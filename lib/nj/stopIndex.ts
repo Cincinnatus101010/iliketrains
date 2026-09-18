@@ -1,8 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function normalize(name: string): string {
   return name.trim().toUpperCase().replace(/\s+STATION$/i, "");
@@ -10,9 +7,13 @@ function normalize(name: string): string {
 
 function load(): Map<string, { lat: number; lon: number }> {
   const map = new Map<string, { lat: number; lon: number }>();
+  const root = process.cwd();
 
-  const csvPath = path.join(__dirname, "data", "njt-stops.txt");
-  if (fs.existsSync(csvPath)) {
+  for (const csvPath of [
+    path.join(root, "public", "data", "njt-stops.txt"),
+    path.join(root, "lib", "nj", "data", "njt-stops.txt"),
+  ]) {
+    if (!fs.existsSync(csvPath)) continue;
     for (const line of fs.readFileSync(csvPath, "utf8").split("\n").slice(1)) {
       if (!line.trim()) continue;
       const parts = line.split(",");
@@ -26,7 +27,7 @@ function load(): Map<string, { lat: number; lon: number }> {
     }
   }
 
-  const geoPath = path.join(__dirname, "..", "public", "data", "nj-rail-stops.geojson");
+  const geoPath = path.join(root, "public", "data", "nj-rail-stops.geojson");
   if (fs.existsSync(geoPath)) {
     const geo = JSON.parse(fs.readFileSync(geoPath, "utf8")) as {
       features: Array<{
@@ -48,11 +49,6 @@ function load(): Map<string, { lat: number; lon: number }> {
 }
 
 const byKey = load();
-
-export function getAnchorStopId(stopName: string | null | undefined): string | null {
-  if (!stopName?.trim()) return null;
-  return normalize(stopName);
-}
 
 export function tryGetCoordinates(
   stopName: string | null | undefined,

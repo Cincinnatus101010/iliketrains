@@ -3,6 +3,8 @@ dist
 .env
 .env.local
 server/.raildata-token.json
+.data
+.next
 .git
 .DS_Store
 *.tsbuildinfo

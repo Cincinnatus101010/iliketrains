@@ -1,7 +1,9 @@
+"use client";
+
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
-import type { NjTrain } from "../types";
+import type { NjTrain } from "@/lib/types";
 
 const CENTER: [number, number] = [-74.35, 40.65];
 const ZOOM = 8.4;
@@ -38,10 +40,10 @@ export function NjLiveMap({ trains }: NjLiveMapProps) {
       mapRef.current = map;
 
       map.on("load", () => {
-        installRailLayers(map);
+        void installRailLayers(map);
       });
       if (map.isStyleLoaded()) {
-        installRailLayers(map);
+        void installRailLayers(map);
       }
     }
 
@@ -65,14 +67,15 @@ export function NjLiveMap({ trains }: NjLiveMapProps) {
     for (const train of trains) {
       seen.add(train.id);
       let marker = markersRef.current.get(train.id);
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = "map-train-marker";
-      el.title = `${train.route} ${train.label}`;
-      el.style.background = train.color;
-      el.textContent = train.route.length > 3 ? train.route.slice(0, 3) : train.route;
 
       if (!marker) {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "map-train-marker";
+        el.title = `${train.route} ${train.label}`;
+        el.style.background = train.color;
+        el.textContent = train.route.length > 3 ? train.route.slice(0, 3) : train.route;
+
         marker = new maplibregl.Marker({ element: el, anchor: "center" })
           .setLngLat([train.longitude, train.latitude])
           .addTo(map);

@@ -11,8 +11,8 @@ ENV NODE_ENV=production
 ENV PORT=8080
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-COPY --from=build /app/dist ./dist
-COPY server ./server
-COPY public ./public
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
+COPY --from=build /app/lib ./lib
 EXPOSE 8080
-CMD ["npx", "tsx", "server/index.ts"]
+CMD ["npm", "start", "--", "-p", "8080"]

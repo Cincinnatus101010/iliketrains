@@ -1,18 +1,6 @@
-import { colorForRoute, routeFromApiLine } from "./njRoutes.js";
-import { getAnchorStopId, tryGetCoordinates } from "./stopIndex.js";
-
-export type NjTrain = {
-  id: string;
-  route: string;
-  label: string;
-  latitude: number;
-  longitude: number;
-  color: string;
-  stopName: string | null;
-  trainNumber: string | null;
-  status: string;
-  inMotion: boolean;
-};
+import { colorForRoute, routeFromApiLine } from "./njRoutes";
+import { tryGetCoordinates } from "./stopIndex";
+import type { NjTrain } from "@/lib/types";
 
 function getString(row: Record<string, unknown>, key: string): string | null {
   const v = row[key];
@@ -62,9 +50,8 @@ export function parseVehicle(row: Record<string, unknown>): NjTrain | null {
   const route = routeFromApiLine(trainLine);
   if (!route) return null;
 
-  let trainNumber = getString(row, "ID")?.trim() ?? null;
-  let nextStop = getString(row, "NEXT_STOP")?.trim() ?? null;
-  getAnchorStopId(nextStop);
+  const trainNumber = getString(row, "ID")?.trim() ?? null;
+  const nextStop = getString(row, "NEXT_STOP")?.trim() ?? null;
 
   const loc = resolveLocation(row, nextStop);
   if (!loc) return null;

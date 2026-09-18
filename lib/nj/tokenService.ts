@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CACHE_PATH = path.join(__dirname, ".raildata-token.json");
+const CACHE_PATH = path.join(process.cwd(), ".data", "raildata-token.json");
 
 type CacheEntry = { token: string; expiresAt: string };
 
@@ -11,8 +9,11 @@ let cachedToken: string | null = null;
 let expiresAt = 0;
 let backoffUntil = 0;
 let lastError: string | null = null;
+let diskLoaded = false;
 
 function loadDisk(): void {
+  if (diskLoaded) return;
+  diskLoaded = true;
   if (!fs.existsSync(CACHE_PATH)) return;
   try {
     const entry = JSON.parse(fs.readFileSync(CACHE_PATH, "utf8")) as CacheEntry;
@@ -28,19 +29,20 @@ function loadDisk(): void {
 
 function saveDisk(): void {
   if (!cachedToken) return;
+  fs.mkdirSync(path.dirname(CACHE_PATH), { recursive: true });
   fs.writeFileSync(
     CACHE_PATH,
     JSON.stringify({ token: cachedToken, expiresAt: new Date(expiresAt).toISOString() }),
   );
 }
 
-loadDisk();
-
 export function getLastTokenError(): string | null {
   return lastError;
 }
 
 export async function getNjToken(username: string, password: string, tokenUrl: string): Promise<string | null> {
+  loadDisk();
+
   if (!username || !password) {
     lastError = "NJ Transit credentials not configured";
     return null;
