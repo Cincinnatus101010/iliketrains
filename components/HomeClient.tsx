@@ -12,6 +12,7 @@ import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import type { MapScope } from "@/lib/types";
 import { ActiveTripCard } from "./ActiveTripCard";
 import { DockPanel } from "./DockPanel";
+import { FollowTrainBar } from "./FollowTrainBar";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 
 const NavigationSheet = dynamic(() => import("./NavigationSheet").then((m) => m.NavigationSheet), {
@@ -40,6 +41,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
   const [tripHydrated, setTripHydrated] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(true);
   const [linesOpen, setLinesOpen] = useState(false);
+  const [followedTrainId, setFollowedTrainId] = useState<string | null>(null);
 
   const {
     data: njData,
@@ -101,10 +103,30 @@ export function HomeClient({ coordinator }: HomeClientProps) {
     return allTrains;
   }, [allTrains, scope]);
 
-  const visibleTrains = useMemo(
-    () => scopedTrains.filter((t) => trainMatchesLineKey(t, activeLine)),
-    [scopedTrains, activeLine],
+  const visibleTrains = useMemo(() => {
+    const filtered = scopedTrains.filter((t) => trainMatchesLineKey(t, activeLine));
+    if (!followedTrainId) return filtered;
+    if (filtered.some((t) => t.id === followedTrainId)) return filtered;
+    const followed = allTrains.find((t) => t.id === followedTrainId);
+    return followed ? [...filtered, followed] : filtered;
+  }, [scopedTrains, activeLine, followedTrainId, allTrains]);
+
+  const followedTrain = useMemo(
+    () => (followedTrainId ? allTrains.find((t) => t.id === followedTrainId) : null),
+    [allTrains, followedTrainId],
   );
+
+  useEffect(() => {
+    if (!followedTrainId) return;
+    if (!allTrains.some((t) => t.id === followedTrainId)) {
+      setFollowedTrainId(null);
+    }
+  }, [allTrains, followedTrainId]);
+
+  const handleFollowTrain = (trainId: string) => {
+    setFollowedTrainId((current) => (current === trainId ? null : trainId));
+    setBottomCollapsed(false);
+  };
 
   const mapTrainsSignature = useMemo(() => trainPositionsSignature(visibleTrains), [visibleTrains]);
 
@@ -201,7 +223,14 @@ export function HomeClient({ coordinator }: HomeClientProps) {
           plannedRouteFitKey={plannedRouteFitKey}
           tripHighlightTrainIds={tripHighlightTrainIds}
           tripHighlightKey={tripHighlightKey}
+          followedTrainId={followedTrainId}
+          onFollowTrain={handleFollowTrain}
+          onClearFollow={() => setFollowedTrainId(null)}
         />
+
+        {followedTrain && (
+          <FollowTrainBar train={followedTrain} onStop={() => setFollowedTrainId(null)} />
+        )}
 
         {savedTrip && (
           <ActiveTripCard
@@ -247,6 +276,8 @@ export function HomeClient({ coordinator }: HomeClientProps) {
             onRefresh={refresh}
             savedTrip={savedTrip}
             tripHighlightTrainIds={tripHighlightTrainIds}
+            followedTrainId={followedTrainId}
+            onFollowTrain={handleFollowTrain}
           />
         )}
       </section>

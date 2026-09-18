@@ -23,6 +23,9 @@ type NjLiveMapProps = {
   plannedRouteFitKey: string | null;
   tripHighlightTrainIds: Set<string>;
   tripHighlightKey: string;
+  followedTrainId: string | null;
+  onFollowTrain: (trainId: string) => void;
+  onClearFollow: () => void;
 };
 
 export function NjLiveMap({
@@ -34,6 +37,9 @@ export function NjLiveMap({
   plannedRouteFitKey,
   tripHighlightTrainIds,
   tripHighlightKey,
+  followedTrainId,
+  onFollowTrain,
+  onClearFollow,
 }: NjLiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GameMap | null>(null);
@@ -43,6 +49,14 @@ export function NjLiveMap({
   const lastRouteFitKeyRef = useRef<string | null>(null);
   const trainsRef = useRef(trains);
   trainsRef.current = trains;
+  const onFollowTrainRef = useRef(onFollowTrain);
+  onFollowTrainRef.current = onFollowTrain;
+  const onClearFollowRef = useRef(onClearFollow);
+  onClearFollowRef.current = onClearFollow;
+  const followedTrainIdRef = useRef(followedTrainId);
+  followedTrainIdRef.current = followedTrainId;
+  const paddingRef = useRef(padding);
+  paddingRef.current = padding;
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +89,13 @@ export function NjLiveMap({
       const controller = new TrainMarkerController(map, engine);
       markersRef.current = controller;
 
+      const onUserPan = () => {
+        if (followedTrainIdRef.current) onClearFollowRef.current();
+      };
+      map.on("dragstart", onUserPan);
+      map.on("rotatestart", onUserPan);
+      map.on("pitchstart", onUserPan);
+
       const onViewSettled = () => {
         controller.refreshPositions();
       };
@@ -85,6 +106,9 @@ export function NjLiveMap({
         map.off("zoomend", onViewSettled);
         map.off("moveend", onViewSettled);
         map.off("pitchend", onViewSettled);
+        map.off("dragstart", onUserPan);
+        map.off("rotatestart", onUserPan);
+        map.off("pitchstart", onUserPan);
       };
 
       const onLoad = () => {
@@ -144,6 +168,42 @@ export function NjLiveMap({
   useEffect(() => {
     markersRef.current?.setTripHighlightTrainIds(tripHighlightTrainIds);
   }, [tripHighlightKey, tripHighlightTrainIds]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const controller = markersRef.current;
+    if (!map || !controller) return;
+
+    controller.setFollowHandlers(
+      followedTrainId,
+      onFollowTrain,
+      followedTrainId
+        ? (lngLat) => {
+            map.easeTo({
+              center: lngLat,
+              zoom: Math.max(map.getZoom(), 12.5),
+              duration: 0,
+              padding,
+              essential: true,
+            });
+          }
+        : null,
+    );
+  }, [followedTrainId, onFollowTrain, padding]);
+
+  useEffect(() => {
+    if (!followedTrainId) return;
+    const map = mapRef.current;
+    const train = trainsRef.current.find((t) => t.id === followedTrainId);
+    if (!map || !train) return;
+    map.easeTo({
+      center: [train.longitude, train.latitude],
+      zoom: Math.max(map.getZoom(), 12.5),
+      duration: 700,
+      padding,
+      essential: true,
+    });
+  }, [followedTrainId, padding]);
 
   useEffect(() => {
     const map = mapRef.current;

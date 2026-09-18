@@ -60,18 +60,20 @@ export function trainMarkerTitle(train: LiveTrain): string {
     .join(" · ");
 }
 
-export function trainPopupHtml(train: LiveTrain): string {
+export function trainPopupHtml(train: LiveTrain, opts?: { following?: boolean }): string {
   const line = displayLineName(train);
   const network = train.network === "mta" ? "NY Subway" : "NJ Transit";
   const headline = escapeHtml(trainHeadline(train));
   const meta = escapeHtml(trainMeta(train, { includeDeparture: false }));
   const time = escapeHtml(trainTimeLabel(train));
+  const followLabel = opts?.following ? "Following" : "Follow train";
 
   return `<div class="map-train-popup">
   <p class="map-train-popup-kicker">${escapeHtml(line)} · ${network}</p>
   <p class="map-train-popup-head">${headline}</p>
   <p class="map-train-popup-time">${time}</p>
   ${meta ? `<p class="map-train-popup-meta">${meta}</p>` : ""}
+  <button type="button" class="map-train-popup-follow" data-train-follow="${escapeHtml(train.id)}">${followLabel}</button>
 </div>`;
 }
 

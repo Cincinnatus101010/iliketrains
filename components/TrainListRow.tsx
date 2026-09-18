@@ -5,13 +5,17 @@ import type { LiveTrain } from "@/lib/types";
 type TrainListRowProps = {
   train: LiveTrain;
   highlight?: boolean;
+  following?: boolean;
+  onFollow?: (trainId: string) => void;
 };
 
-export function TrainListRow({ train, highlight }: TrainListRowProps) {
+export function TrainListRow({ train, highlight, following, onFollow }: TrainListRowProps) {
   const meta = trainMeta(train, { includeDeparture: false });
 
   return (
-    <div className={`train-row ${highlight ? "train-row--highlight" : ""}`}>
+    <div
+      className={`train-row ${highlight ? "train-row--highlight" : ""} ${following ? "train-row--follow" : ""}`}
+    >
       <span className="train-row-rail" style={{ background: train.color }} aria-hidden />
       <div className="train-row-body">
         <span className="train-row-line">
@@ -23,7 +27,18 @@ export function TrainListRow({ train, highlight }: TrainListRowProps) {
       </div>
       <div className="train-row-aside">
         <span className="train-row-time">{trainTimeLabel(train)}</span>
-        <span className="train-row-code">{train.route}</span>
+        {onFollow ? (
+          <button
+            type="button"
+            className={`train-row-follow ${following ? "train-row-follow--on" : ""}`}
+            aria-pressed={following}
+            onClick={() => onFollow(train.id)}
+          >
+            {following ? "Following" : "Follow"}
+          </button>
+        ) : (
+          <span className="train-row-code">{train.route}</span>
+        )}
       </div>
     </div>
   );

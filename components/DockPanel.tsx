@@ -20,9 +20,17 @@ type DockPanelProps = {
   onRefresh: () => void;
   savedTrip: SavedTrip | null;
   tripHighlightTrainIds: Set<string>;
+  followedTrainId: string | null;
+  onFollowTrain: (trainId: string) => void;
 };
 
-export function DockPanel({ savedTrip, tripHighlightTrainIds, ...props }: DockPanelProps) {
+export function DockPanel({
+  savedTrip,
+  tripHighlightTrainIds,
+  followedTrainId,
+  onFollowTrain,
+  ...props
+}: DockPanelProps) {
   const [tab, setTab] = useState<DockTab>(savedTrip ? "trip" : "live");
 
   useEffect(() => {
@@ -65,9 +73,20 @@ export function DockPanel({ savedTrip, tripHighlightTrainIds, ...props }: DockPa
         </button>
       </div>
       {tab === "trip" && savedTrip ? (
-        <TripLivePanel trip={savedTrip} trains={props.trains} activeLine={props.activeLine} />
+        <TripLivePanel
+          trip={savedTrip}
+          trains={props.trains}
+          activeLine={props.activeLine}
+          followedTrainId={followedTrainId}
+          onFollowTrain={onFollowTrain}
+        />
       ) : tab === "live" ? (
-        <TrainPanel {...props} highlightTrainIds={tripHighlightTrainIds} />
+        <TrainPanel
+          {...props}
+          highlightTrainIds={tripHighlightTrainIds}
+          followedTrainId={followedTrainId}
+          onFollowTrain={onFollowTrain}
+        />
       ) : (
         <SchedulePanel activeLine={props.activeLine} defaultStationCode={scheduleStationCode} />
       )}

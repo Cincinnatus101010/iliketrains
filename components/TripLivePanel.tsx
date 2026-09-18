@@ -2,7 +2,8 @@
 
 import type { LineKey } from "@/lib/lineKey";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
-import { rideLineKeysFromTrip, trainMatchesTrip } from "@/lib/trip/tripLines";
+import { trainMatchesTrip } from "@/lib/trip/tripLines";
+import { ensureRouteStats, tripStatsHeadline } from "@/lib/trip/tripStats";
 import type { LiveTrain } from "@/lib/types";
 import { TrainListRow } from "./TrainListRow";
 import { TripTimeline } from "./TripTimeline";
@@ -11,10 +12,18 @@ type TripLivePanelProps = {
   trip: SavedTrip;
   trains: LiveTrain[];
   activeLine: LineKey | null;
+  followedTrainId: string | null;
+  onFollowTrain: (trainId: string) => void;
 };
 
-export function TripLivePanel({ trip, trains, activeLine }: TripLivePanelProps) {
-  const tripLines = rideLineKeysFromTrip(trip);
+export function TripLivePanel({
+  trip,
+  trains,
+  activeLine,
+  followedTrainId,
+  onFollowTrain,
+}: TripLivePanelProps) {
+  const route = ensureRouteStats(trip.route);
   const onRoute = trains.filter((t) => trainMatchesTrip(t, trip));
   const sorted = [...onRoute].sort(
     (a, b) =>
@@ -34,14 +43,13 @@ export function TripLivePanel({ trip, trains, activeLine }: TripLivePanelProps) 
         </div>
       </header>
       <p className="panel-meta">
-        {sorted.length} live on your lines
-        {tripLines.length > 0
-          ? ` · ${tripLines.length} line${tripLines.length === 1 ? "" : "s"}`
-          : ""}
+        {route.stats ? tripStatsHeadline(route.stats) : `${route.stopCount} stops`}
+        {" · "}
+        {sorted.length} live now
         {activeLine ? " · line filter on" : ""}
       </p>
       <div className="trip-live-route">
-        <TripTimeline steps={trip.route.steps} compact />
+        <TripTimeline steps={route.steps} compact />
       </div>
       <p className="panel-kicker trip-live-trains-label">On your route now</p>
       <ul className="train-list" aria-label="Live trains on trip">
@@ -52,7 +60,12 @@ export function TripLivePanel({ trip, trains, activeLine }: TripLivePanelProps) 
         )}
         {sorted.slice(0, 40).map((train) => (
           <li key={train.id}>
-            <TrainListRow train={train} highlight />
+            <TrainListRow
+              train={train}
+              highlight
+              following={followedTrainId === train.id}
+              onFollow={onFollowTrain}
+            />
           </li>
         ))}
       </ul>
