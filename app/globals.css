@@ -278,6 +278,135 @@ body {
   padding: 0;
 }
 
+.map-train-marker--track {
+  border-radius: 0.45rem;
+  min-width: 2rem;
+  font-size: 0.72rem;
+}
+
+.dock-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.dock-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.65rem 0.85rem 0;
+  flex-shrink: 0;
+}
+
+.dock-tab {
+  flex: 1;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.65);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dock-tab--on {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.schedule-station-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.85rem;
+}
+
+.schedule-station-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.schedule-station-select {
+  width: 100%;
+  padding: 0.5rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.panel-error {
+  margin: 0 0.85rem;
+  font-size: 0.78rem;
+  color: #fecaca;
+}
+
+.schedule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.85rem 0.65rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: 0.45rem;
+  align-items: start;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.schedule-row-time {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.schedule-time {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.schedule-status {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.schedule-dest {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.schedule-line {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.schedule-track {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
 .fab {
   position: absolute;
   z-index: 30;

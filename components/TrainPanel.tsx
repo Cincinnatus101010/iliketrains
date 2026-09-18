@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Typography } from "@iantroisi/ui";
+import { formatNjDateTime } from "@/lib/formatTime";
 import { lineName } from "@/lib/nj/lines";
 import type { NjTrain } from "@/lib/types";
 
@@ -12,6 +13,12 @@ type TrainPanelProps = {
   activeLine: string | null;
   onRefresh: () => void;
 };
+
+function trackLabel(train: NjTrain): string {
+  if (train.platformTrack) return `Platform track ${train.platformTrack}`;
+  if (train.trackCircuit) return `Circuit ${train.trackCircuit}`;
+  return "Track unknown";
+}
 
 export function TrainPanel({
   trains,
@@ -54,10 +61,17 @@ export function TrainPanel({
             <div className="train-row">
               <span className="train-row-rail" style={{ background: train.color }} aria-hidden />
               <div className="train-row-body">
-                <span className="train-row-line">{lineName(train.route)}</span>
-                <span className="train-row-stop">{train.label}</span>
+                <span className="train-row-line">{train.lineName}</span>
+                <span className="train-row-stop">
+                  {train.direction ? `${train.direction} · ` : ""}
+                  Next {train.label}
+                </span>
                 <span className="train-row-sub">
-                  {train.trainNumber ? `Train ${train.trainNumber}` : train.status}
+                  {trackLabel(train)}
+                  {train.scheduledDeparture
+                    ? ` · Dep ${formatNjDateTime(train.scheduledDeparture)}`
+                    : ""}
+                  {train.trainNumber ? ` · #${train.trainNumber}` : ""}
                 </span>
               </div>
               <span className="train-row-code">{train.route}</span>

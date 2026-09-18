@@ -18,7 +18,7 @@ function parseLateMinutes(secLate: string | null): number {
 }
 
 function statusLabel(lateMin: number): string {
-  if (lateMin <= 0) return "Between stations";
+  if (lateMin <= 0) return "On schedule";
   if (lateMin === 1) return "1 min late";
   return `${lateMin} min late`;
 }
@@ -52,6 +52,9 @@ export function parseVehicle(row: Record<string, unknown>): NjTrain | null {
 
   const trainNumber = getString(row, "ID")?.trim() ?? null;
   const nextStop = getString(row, "NEXT_STOP")?.trim() ?? null;
+  const direction = getString(row, "DIRECTION")?.trim() ?? null;
+  const trackCircuit = getString(row, "ICS_TRACK_CKT")?.trim() ?? null;
+  const scheduledDeparture = getString(row, "SCHED_DEP_TIME")?.trim() ?? null;
 
   const loc = resolveLocation(row, nextStop);
   if (!loc) return null;
@@ -64,12 +67,17 @@ export function parseVehicle(row: Record<string, unknown>): NjTrain | null {
   return {
     id: `njt-${trainNumber ?? crypto.randomUUID().slice(0, 8)}`,
     route,
+    lineName: trainLine?.trim() ?? route,
     label,
     latitude: loc.lat,
     longitude: loc.lon,
     color: colorForRoute(route),
     stopName: nextStop,
     trainNumber,
+    direction,
+    trackCircuit,
+    platformTrack: null,
+    scheduledDeparture,
     status,
     inMotion,
   };

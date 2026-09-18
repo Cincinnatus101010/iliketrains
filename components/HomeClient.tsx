@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { pollingRevalidate, serializeKey, useSteddy, type Coordinator } from "steddy";
 import { fetchNjTrains } from "@/lib/fetchNjTrains";
 import { LineLegend } from "./LineLegend";
-import { TrainPanel } from "./TrainPanel";
+import { DockPanel } from "./DockPanel";
 
 const NjLiveMap = dynamic(() => import("./NjLiveMap").then((m) => m.NjLiveMap), {
   ssr: false,
@@ -101,7 +101,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
       )}
 
       <aside className={`dock glass ${sheetOpen ? "dock--open" : ""}`} aria-hidden={isMobile && !sheetOpen}>
-        <TrainPanel
+        <DockPanel
           trains={trains}
           loading={isLoading}
           validating={isValidating}

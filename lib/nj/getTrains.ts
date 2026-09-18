@@ -1,6 +1,7 @@
 import { config, njConfigured } from "./config";
 import { getLastTokenError, getNjToken } from "./tokenService";
 import { parseVehicle } from "./parseVehicles";
+import { enrichLiveTrainsWithTracks } from "./enrichTracks";
 import type { TrainsResponse } from "@/lib/types";
 
 export async function getTrainsResponse(): Promise<TrainsResponse> {
@@ -40,7 +41,8 @@ export async function getTrainsResponse(): Promise<TrainsResponse> {
       return { trains: [], error: "Unexpected vehicle payload", configured: true };
     }
 
-    const trains = rows.map(parseVehicle).filter((t): t is NonNullable<typeof t> => t != null);
+    let trains = rows.map(parseVehicle).filter((t): t is NonNullable<typeof t> => t != null);
+    trains = await enrichLiveTrainsWithTracks(trains, token);
     return {
       trains,
       error: null,

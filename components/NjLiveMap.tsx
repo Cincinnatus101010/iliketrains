@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
-import { lineName } from "@/lib/nj/lines";
 import type { NjTrain } from "@/lib/types";
 
 const CENTER: [number, number] = [-74.35, 40.65];
@@ -97,9 +96,11 @@ export function NjLiveMap({ trains, highlightLine, padding }: NjLiveMapProps) {
         const el = document.createElement("button");
         el.type = "button";
         el.className = "map-train-marker";
-        el.title = `${lineName(train.route)} · ${train.label}`;
+        const track = train.platformTrack ? ` · Trk ${train.platformTrack}` : "";
+        el.title = `${train.lineName}${train.direction ? ` · ${train.direction}` : ""} · Next ${train.label}${track}`;
         el.style.background = train.color;
-        el.textContent = train.route.length > 3 ? train.route.slice(0, 3) : train.route;
+        el.textContent = train.platformTrack ?? (train.route.length > 3 ? train.route.slice(0, 3) : train.route);
+        el.className = train.platformTrack ? "map-train-marker map-train-marker--track" : "map-train-marker";
 
         marker = new maplibregl.Marker({ element: el, anchor: "center" })
           .setLngLat([train.longitude, train.latitude])
@@ -109,8 +110,12 @@ export function NjLiveMap({ trains, highlightLine, padding }: NjLiveMapProps) {
         marker.setLngLat([train.longitude, train.latitude]);
         const existing = marker.getElement() as HTMLButtonElement;
         existing.style.background = train.color;
-        existing.title = `${lineName(train.route)} · ${train.label}`;
-        existing.textContent = train.route.length > 3 ? train.route.slice(0, 3) : train.route;
+        const track = train.platformTrack ? ` · Trk ${train.platformTrack}` : "";
+        existing.title = `${train.lineName}${train.direction ? ` · ${train.direction}` : ""} · Next ${train.label}${track}`;
+        existing.textContent = train.platformTrack ?? (train.route.length > 3 ? train.route.slice(0, 3) : train.route);
+        existing.className = train.platformTrack
+          ? "map-train-marker map-train-marker--track"
+          : "map-train-marker";
       }
     }
 
