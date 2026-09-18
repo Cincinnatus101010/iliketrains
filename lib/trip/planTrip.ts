@@ -1,5 +1,7 @@
+import { haversineMeters, walkMinutesForDistanceM } from "./geo";
 import type { TripGraph } from "./loadGraph";
 import { routeColor } from "./routeColor";
+import { buildTripStats } from "./tripStats";
 import type { PlannedRoute, RouteStep } from "./types";
 
 export function planTrip(graph: TripGraph, fromKey: string, toKey: string): PlannedRoute | null {
@@ -9,10 +11,22 @@ export function planTrip(graph: TripGraph, fromKey: string, toKey: string): Plan
 
   if (fromKey === toKey) {
     const node = graph.nodes.get(fromKey)!;
+    const steps: RouteStep[] = [
+      {
+        kind: "stay",
+        route: null,
+        fromName: node.name,
+        toName: node.name,
+        color: null,
+        fromKey,
+        toKey: fromKey,
+      },
+    ];
     return {
-      steps: [{ kind: "stay", route: null, fromName: node.name, toName: node.name, color: null }],
+      steps,
       coordinatesLonLat: [[node.lon, node.lat]],
       stopCount: 1,
+      stats: buildTripStats(steps, 1),
     };
   }
 
@@ -52,7 +66,13 @@ export function planTrip(graph: TripGraph, fromKey: string, toKey: string): Plan
     return [n.lon, n.lat] as [number, number];
   });
 
-  return { steps, coordinatesLonLat, stopCount: pathNodes.length };
+  const stopCount = pathNodes.length;
+  return {
+    steps,
+    coordinatesLonLat,
+    stopCount,
+    stats: buildTripStats(steps, stopCount),
+  };
 }
 
 function buildSteps(graph: TripGraph, nodes: string[], edgeRoutes: string[]): RouteStep[] {
@@ -69,6 +89,9 @@ function buildSteps(graph: TripGraph, nodes: string[], edgeRoutes: string[]): Ro
     const toNode = graph.nodes.get(nodes[i + 1]!)!;
     const isWalk = route.toLowerCase() === "walk";
     const kind = isWalk ? "walk" : "ride";
+    const walkDistanceM = isWalk
+      ? haversineMeters(fromNode.lat, fromNode.lon, toNode.lat, toNode.lon)
+      : undefined;
     steps.push({
       kind,
       route: kind === "ride" ? route : null,
@@ -76,6 +99,10 @@ function buildSteps(graph: TripGraph, nodes: string[], edgeRoutes: string[]): Ro
       toName: toNode.name,
       color: kind === "ride" ? routeColor(route) : null,
       network: kind === "ride" ? (fromNode.network === "njt" ? "njt" : "mta") : undefined,
+      fromKey: nodes[segStart]!,
+      toKey: nodes[i + 1]!,
+      walkDistanceM,
+      walkMinutes: walkDistanceM != null ? walkMinutesForDistanceM(walkDistanceM) : undefined,
     });
     segStart = i + 1;
   }

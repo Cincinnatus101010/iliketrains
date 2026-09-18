@@ -1,5 +1,7 @@
 "use client";
 
+import { formatWalkDistance } from "@/lib/trip/geo";
+import { tripLineLabel } from "@/lib/trip/lineLabel";
 import type { RouteStep } from "@/lib/trip/types";
 
 type TripTimelineProps = {
@@ -9,21 +11,23 @@ type TripTimelineProps = {
 
 function stepTitle(step: RouteStep): string {
   if (step.kind === "walk") {
-    return step.fromName === step.toName ? "Walk" : `Walk to ${step.toName}`;
+    if (step.fromName === step.toName) return "Walk";
+    const mins = step.walkMinutes;
+    const suffix = mins ? ` · ~${mins} min` : "";
+    return `Transfer · walk to ${step.toName}${suffix}`;
   }
-  if (step.kind === "stay") return step.fromName;
-  const route = step.route ?? "Train";
-  return step.fromName === step.toName
-    ? `Take ${route}`
-    : `Take ${route} toward ${step.toName}`;
+  if (step.kind === "stay") return `Stay at ${step.fromName}`;
+  const line = tripLineLabel(step.network, step.route ?? "");
+  if (step.fromName === step.toName) return `Board ${line}`;
+  return `${line} to ${step.toName}`;
 }
 
 function stepDetail(step: RouteStep): string | null {
   if (step.kind === "ride" && step.fromName !== step.toName) {
-    return `${step.fromName} → ${step.toName}`;
+    return `Board at ${step.fromName} · exit at ${step.toName}`;
   }
-  if (step.kind === "walk" && step.fromName !== step.toName) {
-    return `${step.fromName} → ${step.toName}`;
+  if (step.kind === "walk" && step.walkDistanceM != null && step.walkDistanceM > 0) {
+    return formatWalkDistance(step.walkDistanceM);
   }
   return null;
 }
@@ -35,7 +39,10 @@ export function TripTimeline({ steps, compact = false }: TripTimelineProps) {
         const isLast = i === steps.length - 1;
         const detail = stepDetail(step);
         return (
-          <li key={`${step.kind}-${step.fromName}-${i}`} className={`trip-timeline-item trip-timeline-item--${step.kind}`}>
+          <li
+            key={`${step.kind}-${step.fromKey ?? step.fromName}-${i}`}
+            className={`trip-timeline-item trip-timeline-item--${step.kind}`}
+          >
             <div className="trip-timeline-gutter" aria-hidden>
               <span className="trip-timeline-dot" />
               {!isLast && <span className="trip-timeline-line" />}
@@ -43,15 +50,21 @@ export function TripTimeline({ steps, compact = false }: TripTimelineProps) {
             <div className="trip-timeline-body">
               <div className="trip-timeline-head">
                 {step.kind === "ride" && step.route ? (
-                  <span className="trip-timeline-badge" style={{ background: step.color ?? "#444" }}>
+                  <span
+                    className="trip-timeline-badge"
+                    style={{ background: step.color ?? "#444" }}
+                    title={tripLineLabel(step.network, step.route)}
+                  >
                     {step.route}
                   </span>
                 ) : step.kind === "walk" ? (
-                  <span className="trip-timeline-badge trip-timeline-badge--walk">Walk</span>
+                  <span className="trip-timeline-badge trip-timeline-badge--walk">Transfer</span>
                 ) : null}
                 <span className="trip-timeline-title">{stepTitle(step)}</span>
               </div>
-              {!compact && detail && <p className="trip-timeline-detail">{detail}</p>}
+              {(!compact || step.kind === "walk") && detail && (
+                <p className="trip-timeline-detail">{detail}</p>
+              )}
             </div>
           </li>
         );

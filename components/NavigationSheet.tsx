@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { loadTripGraph, listPlanStations } from "@/lib/trip/loadGraph";
+import { listPlanStations, loadTripGraph } from "@/lib/trip/loadGraph";
 import { planTrip } from "@/lib/trip/planTrip";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
+import { ensureRouteStats } from "@/lib/trip/tripStats";
 import type { PlannedRoute } from "@/lib/trip/types";
-import { TripTimeline } from "./TripTimeline";
+import { StationPicker } from "./StationPicker";
+import { TripPlanPreview } from "./TripPlanPreview";
 
 type NavigationSheetProps = {
   open: boolean;
@@ -45,7 +47,7 @@ export function NavigationSheet({
     if (initialTrip) {
       setFromKey(initialTrip.fromKey);
       setToKey(initialTrip.toKey);
-      setPreview(initialTrip.route);
+      setPreview(ensureRouteStats(initialTrip.route));
       setError(null);
       return;
     }
@@ -55,52 +57,62 @@ export function NavigationSheet({
     setError(null);
   }, [open, initialTrip]);
 
-  const mtaStations = useMemo(() => stations.filter((s) => s.network === "mta"), [stations]);
-  const njStations = useMemo(() => stations.filter((s) => s.network === "njt"), [stations]);
-
   const stationName = (key: string) => stations.find((s) => s.key === key)?.name ?? key;
+
+  useEffect(() => {
+    if (!open || !fromKey || !toKey) {
+      if (!fromKey || !toKey) setPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setPlanning(true);
+      setError(null);
+      void loadTripGraph()
+        .then((graph) => {
+          if (cancelled) return;
+          if (!graph) {
+            setError("Route data missing.");
+            setPreview(null);
+            return;
+          }
+          const route = planTrip(graph, fromKey, toKey);
+          if (!route) {
+            setError("No route found between those stations.");
+            setPreview(null);
+            return;
+          }
+          setPreview(route);
+        })
+        .finally(() => {
+          if (!cancelled) setPlanning(false);
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [open, fromKey, toKey]);
+
+  const endpointsReady = Boolean(fromKey && toKey);
+
+  const sheetTitle = useMemo(() => {
+    if (initialTrip) return "Your trip";
+    if (preview && fromKey && toKey) return "Review route";
+    return "Plan a trip";
+  }, [initialTrip, preview, fromKey, toKey]);
 
   if (!open) return null;
 
   const swap = () => {
     setFromKey(toKey);
     setToKey(fromKey);
-    setPreview(null);
-  };
-
-  const buildPreview = async () => {
-    setError(null);
-    setPreview(null);
-    if (!fromKey || !toKey) {
-      setError("Choose both a from and to station.");
-      return;
-    }
-
-    setPlanning(true);
-    try {
-      const graph = await loadTripGraph();
-      if (!graph) {
-        setError("Route data missing.");
-        return;
-      }
-
-      const route = planTrip(graph, fromKey, toKey);
-      if (!route) {
-        setError("No route found between those stations.");
-        return;
-      }
-
-      setPreview(route);
-    } finally {
-      setPlanning(false);
-    }
   };
 
   const startTrip = () => {
-    if (!preview || !fromKey || !toKey) {
-      void buildPreview();
-      return;
-    }
+    if (!preview || !fromKey || !toKey) return;
 
     onStartTrip({
       fromKey,
@@ -133,7 +145,13 @@ export function NavigationSheet({
         <header className="nav-sheet-head">
           <div>
             <p className="panel-kicker">Navigate</p>
-            <h2 className="panel-title">{initialTrip ? "Your trip" : "New trip"}</h2>
+            <h2 className="panel-title">{sheetTitle}</h2>
+            {!endpointsReady && !loadingStations && (
+              <p className="nav-sheet-subtitle">Pick a start and destination to see directions.</p>
+            )}
+            {planning && endpointsReady && (
+              <p className="nav-sheet-subtitle">Finding best route…</p>
+            )}
           </div>
           <button type="button" className="nav-sheet-close" aria-label="Close" onClick={onClose}>
             ✕
@@ -145,95 +163,67 @@ export function NavigationSheet({
         )}
 
         <div className="trip-endpoints">
-          <label className="trip-endpoint">
-            <span className="trip-endpoint-marker trip-endpoint-marker--from" aria-hidden />
-            <span className="trip-endpoint-field">
-              <span className="trip-planner-label">From</span>
-              <select
-                className="trip-planner-select"
-                value={fromKey}
-                onChange={(e) => {
-                  setFromKey(e.target.value);
-                  setPreview(null);
-                }}
-              >
-                <option value="">Choose station…</option>
-                <optgroup label="Subway">
-                  {mtaStations.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="NJ Rail">
-                  {njStations.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </span>
-          </label>
+          <StationPicker
+            label="From"
+            markerClass="trip-endpoint-marker--from"
+            value={fromKey}
+            stations={stations}
+            disabled={loadingStations}
+            onChange={(key) => {
+              setFromKey(key);
+              setError(null);
+            }}
+          />
           <div className="trip-endpoints-connector" aria-hidden />
-          <label className="trip-endpoint">
-            <span className="trip-endpoint-marker trip-endpoint-marker--to" aria-hidden />
-            <span className="trip-endpoint-field">
-              <span className="trip-planner-label">To</span>
-              <select
-                className="trip-planner-select"
-                value={toKey}
-                onChange={(e) => {
-                  setToKey(e.target.value);
-                  setPreview(null);
-                }}
-              >
-                <option value="">Choose station…</option>
-                <optgroup label="Subway">
-                  {mtaStations.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="NJ Rail">
-                  {njStations.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </span>
-          </label>
-          <button type="button" className="trip-planner-swap trip-endpoints-swap" title="Swap" aria-label="Swap" onClick={swap}>
+          <StationPicker
+            label="To"
+            markerClass="trip-endpoint-marker--to"
+            value={toKey}
+            stations={stations}
+            disabled={loadingStations}
+            onChange={(key) => {
+              setToKey(key);
+              setError(null);
+            }}
+          />
+          <button
+            type="button"
+            className="trip-planner-swap trip-endpoints-swap"
+            title="Swap"
+            aria-label="Swap from and to"
+            disabled={!fromKey && !toKey}
+            onClick={swap}
+          >
             ⇅
           </button>
         </div>
 
         {error && <p className="panel-error">{error}</p>}
 
-        {preview && (
+        {preview && fromKey && toKey && (
           <div className="nav-sheet-preview">
-            <p className="nav-sheet-preview-title">Directions</p>
-            <TripTimeline steps={preview.steps} />
+            <TripPlanPreview
+              fromName={stationName(fromKey)}
+              toName={stationName(toKey)}
+              route={preview}
+            />
           </div>
         )}
 
         <div className="nav-sheet-footer">
-          {!preview ? (
-            <button
-              type="button"
-              className="nav-sheet-primary"
-              disabled={planning || !fromKey || !toKey}
-              onClick={() => void buildPreview()}
-            >
-              {planning ? "Finding route…" : "Get directions"}
-            </button>
-          ) : (
-            <button type="button" className="nav-sheet-primary" onClick={startTrip}>
-              Start trip
-            </button>
+          <button
+            type="button"
+            className="nav-sheet-primary"
+            disabled={!preview || planning}
+            onClick={startTrip}
+          >
+            {initialTrip ? "Update trip on map" : "Start trip on map"}
+          </button>
+          {preview && (
+            <p className="nav-sheet-footer-hint">
+              Shows your path on the map, opens the Trip panel, and highlights live trains on your
+              lines.
+            </p>
           )}
           {initialTrip && (
             <button type="button" className="nav-sheet-secondary" onClick={endTrip}>

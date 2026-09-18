@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripSummaryLabel } from "@/lib/trip/savedTrip";
+import { ensureRouteStats } from "@/lib/trip/tripStats";
 import { TripTimeline } from "./TripTimeline";
 
 type ActiveTripCardProps = {
@@ -13,6 +14,7 @@ type ActiveTripCardProps = {
 
 export function ActiveTripCard({ trip, onEdit, onEnd }: ActiveTripCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const route = ensureRouteStats(trip.route);
 
   return (
     <div className={`active-trip-card glass ${expanded ? "active-trip-card--expanded" : ""}`}>
@@ -36,6 +38,11 @@ export function ActiveTripCard({ trip, onEdit, onEnd }: ActiveTripCardProps) {
           <span className="active-trip-card-meta">
             from {trip.fromName} · {tripSummaryLabel(trip)}
           </span>
+          {route.stats && (
+            <span className="active-trip-card-lines">
+              {route.stats.lines.map((l) => l.label).join(" · ")}
+            </span>
+          )}
         </button>
         <button
           type="button"
@@ -48,7 +55,7 @@ export function ActiveTripCard({ trip, onEdit, onEnd }: ActiveTripCardProps) {
       </div>
       {expanded && (
         <div className="active-trip-card-steps">
-          <TripTimeline steps={trip.route.steps} compact />
+          <TripTimeline steps={route.steps} compact />
         </div>
       )}
     </div>
