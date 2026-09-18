@@ -1,6 +1,7 @@
 "use client";
 
-import { Badge, Button, Card, Stack, Typography } from "@iantroisi/ui";
+import { Button, Typography } from "@iantroisi/ui";
+import { lineName } from "@/lib/nj/lines";
 import type { NjTrain } from "@/lib/types";
 
 type TrainPanelProps = {
@@ -8,45 +9,62 @@ type TrainPanelProps = {
   loading: boolean;
   validating: boolean;
   updatedAt?: string;
+  activeLine: string | null;
   onRefresh: () => void;
 };
 
-export function TrainPanel({ trains, loading, validating, updatedAt, onRefresh }: TrainPanelProps) {
-  const sorted = [...trains].sort((a, b) => a.route.localeCompare(b.route) || a.label.localeCompare(b.label));
+export function TrainPanel({
+  trains,
+  loading,
+  validating,
+  updatedAt,
+  activeLine,
+  onRefresh,
+}: TrainPanelProps) {
+  const filtered = activeLine ? trains.filter((t) => t.route === activeLine) : trains;
+  const sorted = [...filtered].sort((a, b) => a.route.localeCompare(b.route) || a.label.localeCompare(b.label));
 
   return (
-    <Card title="NJ Rail Live" className="train-panel">
-      <Stack direction="column" gap={4}>
-        <Stack direction="row" gap={2} align="center">
-          <Button size="sm" variant="primary" onClick={onRefresh} disabled={loading}>
-            Refresh
-          </Button>
-          <Typography variant="small" tone="muted">
-            {validating ? "Updating…" : updatedAt ? `Updated ${new Date(updatedAt).toLocaleTimeString()}` : "—"}
-          </Typography>
-        </Stack>
-        <Typography variant="small" tone="muted">
-          {trains.length} train{trains.length === 1 ? "" : "s"} · auto refresh 20s (steddy)
-        </Typography>
-        <Stack direction="column" gap={2} className="train-list">
-          {loading && trains.length === 0 && <Typography tone="muted">Loading…</Typography>}
-          {!loading && trains.length === 0 && <Typography tone="muted">No trains on map right now.</Typography>}
-          {sorted.slice(0, 80).map((train) => (
-            <button key={train.id} type="button" className="train-row">
-              <Badge className="train-route-badge" style={{ background: train.color, color: "#fff" }}>
-                {train.route}
-              </Badge>
-              <Stack direction="column" gap={1} className="train-row-body">
-                <Typography variant="small">{train.label}</Typography>
-                <Typography variant="small" tone="muted">
-                  {train.trainNumber ? `#${train.trainNumber}` : train.status}
-                  {train.inMotion ? " · moving" : ""}
-                </Typography>
-              </Stack>
-            </button>
-          ))}
-        </Stack>
-      </Stack>
-    </Card>
+    <div className="train-panel-inner">
+      <header className="panel-head">
+        <div>
+          <p className="panel-kicker">Live</p>
+          <h2 className="panel-title">{activeLine ? lineName(activeLine) : "All trains"}</h2>
+        </div>
+        <Button size="sm" variant="ghost" onClick={onRefresh} disabled={loading}>
+          {validating ? "…" : "Sync"}
+        </Button>
+      </header>
+      <p className="panel-meta">
+        {sorted.length} active · {updatedAt ? new Date(updatedAt).toLocaleTimeString() : "—"}
+      </p>
+      <ul className="train-list" aria-label="Live trains">
+        {loading && sorted.length === 0 && (
+          <li className="train-list-empty">
+            <Typography tone="muted">Loading…</Typography>
+          </li>
+        )}
+        {!loading && sorted.length === 0 && (
+          <li className="train-list-empty">
+            <Typography tone="muted">Nothing on this line right now.</Typography>
+          </li>
+        )}
+        {sorted.slice(0, 60).map((train) => (
+          <li key={train.id}>
+            <div className="train-row">
+              <span className="train-row-rail" style={{ background: train.color }} aria-hidden />
+              <div className="train-row-body">
+                <span className="train-row-line">{lineName(train.route)}</span>
+                <span className="train-row-stop">{train.label}</span>
+                <span className="train-row-sub">
+                  {train.trainNumber ? `Train ${train.trainNumber}` : train.status}
+                </span>
+              </div>
+              <span className="train-row-code">{train.route}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
