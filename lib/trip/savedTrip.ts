@@ -1,3 +1,4 @@
+import type { ScheduleDeparture } from "@/lib/types";
 import { ensureRouteStats, tripStatsHeadline } from "./tripStats";
 import type { PlannedRoute } from "./types";
 
@@ -8,6 +9,8 @@ export type SavedTrip = {
   toName: string;
   route: PlannedRoute;
   savedAt: string;
+  /** NJ (or first-leg) departure chosen when starting from the schedule list. */
+  chosenDeparture?: ScheduleDeparture | null;
 };
 
 const STORAGE_KEY = "iliketrains.savedTrip.v1";

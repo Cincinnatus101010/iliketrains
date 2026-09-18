@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatNjDateTime } from "@/lib/formatTime";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripSummaryLabel } from "@/lib/trip/savedTrip";
 import { ensureRouteStats } from "@/lib/trip/tripStats";
@@ -37,6 +38,9 @@ export function ActiveTripCard({ trip, onEdit, onEnd }: ActiveTripCardProps) {
           <span className="active-trip-card-dest">{trip.toName}</span>
           <span className="active-trip-card-meta">
             from {trip.fromName} · {tripSummaryLabel(trip)}
+            {trip.chosenDeparture
+              ? ` · dep ${formatNjDateTime(trip.chosenDeparture.scheduledAt)}`
+              : ""}
           </span>
           {route.stats && (
             <span className="active-trip-card-lines">

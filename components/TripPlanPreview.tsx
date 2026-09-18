@@ -1,17 +1,33 @@
 "use client";
 
+import { parseLineKey } from "@/lib/lineKey";
 import { tripStatsHeadline } from "@/lib/trip/tripStats";
 import type { PlannedRoute } from "@/lib/trip/types";
+import type { ScheduleDeparture } from "@/lib/types";
+import { TripDeparturePicker } from "./TripDeparturePicker";
 import { TripTimeline } from "./TripTimeline";
 
 type TripPlanPreviewProps = {
+  fromKey: string;
   fromName: string;
   toName: string;
   route: PlannedRoute;
+  chosenDeparture: ScheduleDeparture | null;
+  onChooseDeparture: (item: ScheduleDeparture) => void;
+  onDeparturesLoaded?: (hasChoices: boolean) => void;
 };
 
-export function TripPlanPreview({ fromName, toName, route }: TripPlanPreviewProps) {
+export function TripPlanPreview({
+  fromKey,
+  fromName,
+  toName,
+  route,
+  chosenDeparture,
+  onChooseDeparture,
+  onDeparturesLoaded,
+}: TripPlanPreviewProps) {
   const stats = route.stats;
+  const isNjOrigin = parseLineKey(fromKey)?.network === "njt";
 
   return (
     <div className="trip-plan-preview">
@@ -44,11 +60,25 @@ export function TripPlanPreview({ fromName, toName, route }: TripPlanPreviewProp
         </ul>
       )}
 
+      {isNjOrigin ? (
+        <TripDeparturePicker
+          fromKey={fromKey}
+          fromName={fromName}
+          route={route}
+          selected={chosenDeparture}
+          onSelect={onChooseDeparture}
+          onDeparturesLoaded={onDeparturesLoaded}
+        />
+      ) : (
+        <p className="trip-departure-hint">
+          Subway-only trip — use live trains on the map after you start.
+        </p>
+      )}
+
       <p className="nav-sheet-preview-title">Step-by-step</p>
       <TripTimeline steps={route.steps} />
       <p className="trip-plan-footnote">
-        Walk times are estimates. Live train positions and NJ departures update in the map panel
-        after you start.
+        Walk times are estimates. Live train positions update in the map panel after you start.
       </p>
     </div>
   );

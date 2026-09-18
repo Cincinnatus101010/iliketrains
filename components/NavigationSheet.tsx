@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { parseLineKey } from "@/lib/lineKey";
 import { listPlanStations, loadTripGraph } from "@/lib/trip/loadGraph";
 import { planTrip } from "@/lib/trip/planTrip";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { ensureRouteStats } from "@/lib/trip/tripStats";
 import type { PlannedRoute } from "@/lib/trip/types";
+import type { ScheduleDeparture } from "@/lib/types";
 import { StationPicker } from "./StationPicker";
 import { TripPlanPreview } from "./TripPlanPreview";
 
@@ -33,6 +35,8 @@ export function NavigationSheet({
   const [preview, setPreview] = useState<PlannedRoute | null>(null);
   const [loadingStations, setLoadingStations] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [chosenDeparture, setChosenDeparture] = useState<ScheduleDeparture | null>(null);
+  const [mustPickDeparture, setMustPickDeparture] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -48,12 +52,14 @@ export function NavigationSheet({
       setFromKey(initialTrip.fromKey);
       setToKey(initialTrip.toKey);
       setPreview(ensureRouteStats(initialTrip.route));
+      setChosenDeparture(initialTrip.chosenDeparture ?? null);
       setError(null);
       return;
     }
     setFromKey("");
     setToKey("");
     setPreview(null);
+    setChosenDeparture(null);
     setError(null);
   }, [open, initialTrip]);
 
@@ -84,6 +90,8 @@ export function NavigationSheet({
             return;
           }
           setPreview(route);
+          setChosenDeparture(null);
+          setMustPickDeparture(false);
         })
         .finally(() => {
           if (!cancelled) setPlanning(false);
@@ -109,10 +117,15 @@ export function NavigationSheet({
   const swap = () => {
     setFromKey(toKey);
     setToKey(fromKey);
+    setChosenDeparture(null);
   };
 
+  const isNjOrigin = parseLineKey(fromKey)?.network === "njt";
+  const needsDeparturePick = Boolean(preview && isNjOrigin && mustPickDeparture);
+  const canStart = preview && !planning && (!needsDeparturePick || chosenDeparture != null);
+
   const startTrip = () => {
-    if (!preview || !fromKey || !toKey) return;
+    if (!preview || !fromKey || !toKey || !canStart) return;
 
     onStartTrip({
       fromKey,
@@ -121,6 +134,7 @@ export function NavigationSheet({
       toName: stationName(toKey),
       route: preview,
       savedAt: new Date().toISOString(),
+      chosenDeparture: chosenDeparture ?? null,
     });
     onClose();
   };
@@ -171,6 +185,7 @@ export function NavigationSheet({
             disabled={loadingStations}
             onChange={(key) => {
               setFromKey(key);
+              setChosenDeparture(null);
               setError(null);
             }}
           />
@@ -183,6 +198,7 @@ export function NavigationSheet({
             disabled={loadingStations}
             onChange={(key) => {
               setToKey(key);
+              setChosenDeparture(null);
               setError(null);
             }}
           />
@@ -203,9 +219,13 @@ export function NavigationSheet({
         {preview && fromKey && toKey && (
           <div className="nav-sheet-preview">
             <TripPlanPreview
+              fromKey={fromKey}
               fromName={stationName(fromKey)}
               toName={stationName(toKey)}
               route={preview}
+              chosenDeparture={chosenDeparture}
+              onChooseDeparture={setChosenDeparture}
+              onDeparturesLoaded={setMustPickDeparture}
             />
           </div>
         )}
@@ -214,11 +234,14 @@ export function NavigationSheet({
           <button
             type="button"
             className="nav-sheet-primary"
-            disabled={!preview || planning}
+            disabled={!canStart}
             onClick={startTrip}
           >
             {initialTrip ? "Update trip on map" : "Start trip on map"}
           </button>
+          {preview && needsDeparturePick && !chosenDeparture && (
+            <p className="nav-sheet-footer-hint">Select a departure time above to continue.</p>
+          )}
           {preview && (
             <p className="nav-sheet-footer-hint">
               Shows your path on the map, opens the Trip panel, and highlights live trains on your
