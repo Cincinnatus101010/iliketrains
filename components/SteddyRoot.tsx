@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { SteddyProvider, attachDefaults, createRuntime } from "steddy";
+import { attachDefaults, createRuntime, SteddyProvider } from "steddy";
 import { HomeClient } from "./HomeClient";
 
 export function SteddyRoot() {

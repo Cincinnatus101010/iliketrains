@@ -1,9 +1,12 @@
-import { config, njConfigured } from "./config";
-import { getLastTokenError, getNjToken } from "./tokenService";
-import { fetchStationList } from "./stations";
 import type { NjStation } from "@/lib/types";
+import { config, njConfigured } from "./config";
+import { fetchStationList } from "./stations";
+import { getLastTokenError, getNjToken } from "./tokenService";
 
-export async function getStationsResponse(): Promise<{ stations: NjStation[]; error: string | null }> {
+export async function getStationsResponse(): Promise<{
+  stations: NjStation[];
+  error: string | null;
+}> {
   if (!njConfigured) {
     return { stations: [], error: "Credentials not configured" };
   }

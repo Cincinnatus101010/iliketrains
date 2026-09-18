@@ -2,7 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 function normalize(name: string): string {
-  return name.trim().toUpperCase().replace(/\s+STATION$/i, "");
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/\s+STATION$/i, "");
 }
 
 type StopPoint = { lat: number; lon: number; name: string };
@@ -11,11 +14,8 @@ function load(): Map<string, StopPoint> {
   const map = new Map<string, StopPoint>();
   const root = process.cwd();
 
-  for (const csvPath of [
-    path.join(root, "public", "data", "njt-stops.txt"),
-    path.join(root, "lib", "nj", "data", "njt-stops.txt"),
-  ]) {
-    if (!fs.existsSync(csvPath)) continue;
+  const csvPath = path.join(root, "public", "data", "njt-stops.txt");
+  if (fs.existsSync(csvPath)) {
     for (const line of fs.readFileSync(csvPath, "utf8").split("\n").slice(1)) {
       if (!line.trim()) continue;
       const parts = line.split(",");

@@ -40,7 +40,11 @@ export function getLastTokenError(): string | null {
   return lastError;
 }
 
-export async function getNjToken(username: string, password: string, tokenUrl: string): Promise<string | null> {
+export async function getNjToken(
+  username: string,
+  password: string,
+  tokenUrl: string,
+): Promise<string | null> {
   loadDisk();
 
   if (!username || !password) {

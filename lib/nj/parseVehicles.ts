@@ -1,6 +1,6 @@
+import type { LiveTrain } from "@/lib/types";
 import { colorForRoute, routeFromApiLine } from "./njRoutes";
 import { distanceToStopM, findNearestStop, tryGetCoordinates } from "./stopIndex";
-import type { LiveTrain } from "@/lib/types";
 
 function getString(row: Record<string, unknown>, key: string): string | null {
   const v = row[key];

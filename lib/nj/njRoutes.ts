@@ -33,17 +33,26 @@ export function routeFromApiLine(trainLine: string | null | undefined): string |
   if (API_LINE_TO_ROUTE[line]) return API_LINE_TO_ROUTE[line];
 
   for (const [apiName, routeId] of Object.entries(API_LINE_TO_ROUTE)) {
-    if (line.toLowerCase().includes(apiName.toLowerCase()) || apiName.toLowerCase().includes(line.toLowerCase())) {
+    if (
+      line.toLowerCase().includes(apiName.toLowerCase()) ||
+      apiName.toLowerCase().includes(line.toLowerCase())
+    ) {
       return routeId;
     }
   }
 
   if (line.toLowerCase().includes("northeast")) return "NEC";
-  if (line.toLowerCase().includes("north jersey coast") || line.toLowerCase().includes("coast line")) return "NJCL";
+  if (
+    line.toLowerCase().includes("north jersey coast") ||
+    line.toLowerCase().includes("coast line")
+  )
+    return "NJCL";
   if (line.toLowerCase().includes("morris") && line.toLowerCase().includes("essex")) return "MNE";
   if (line.toLowerCase().includes("gladstone")) return "MNEG";
-  if (line.toLowerCase().includes("montclair") || line.toLowerCase().includes("boonton")) return "BNTN";
-  if (line.toLowerCase().includes("bergen") || line.toLowerCase().includes("main line")) return "MNBN";
+  if (line.toLowerCase().includes("montclair") || line.toLowerCase().includes("boonton"))
+    return "BNTN";
+  if (line.toLowerCase().includes("bergen") || line.toLowerCase().includes("main line"))
+    return "MNBN";
   if (line.toLowerCase().includes("pascack")) return "PASC";
   if (line.toLowerCase().includes("raritan")) return "RARV";
   if (line.toLowerCase().includes("atlantic city")) return "ATLC";

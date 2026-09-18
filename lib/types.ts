@@ -23,9 +23,6 @@ export type LiveTrain = {
   inMotion: boolean;
 };
 
-/** @deprecated Use LiveTrain */
-export type NjTrain = LiveTrain;
-
 export type TrainsResponse = {
   trains: LiveTrain[];
   error: string | null;

@@ -1,7 +1,7 @@
 import type { LiveTrain } from "@/lib/types";
 import { subwayLineName } from "./lines";
-import { colorForSubwayRoute } from "./subwayRoutes";
 import { getAnchorStopId, getStopName, tryGetStopCoordinates } from "./stopLookup";
+import { colorForSubwayRoute } from "./subwayRoutes";
 
 type FeedEntity = import("gtfs-realtime-bindings").transit_realtime.IFeedEntity;
 type VehiclePosition = import("gtfs-realtime-bindings").transit_realtime.IVehiclePosition;
@@ -99,6 +99,8 @@ export function parseSubwayFeed(entities: FeedEntity[]): LiveTrain[] {
   }
 
   return [...byId.values()].sort(
-    (a, b) => a.route.localeCompare(b.route, undefined, { sensitivity: "base" }) || a.id.localeCompare(b.id),
+    (a, b) =>
+      a.route.localeCompare(b.route, undefined, { sensitivity: "base" }) ||
+      a.id.localeCompare(b.id),
   );
 }

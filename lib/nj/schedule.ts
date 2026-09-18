@@ -1,5 +1,6 @@
 import type { ScheduleDeparture, ScheduleResponse } from "@/lib/types";
 import { config } from "./config";
+import { normalizePlatformTrack } from "./platformTrack";
 import { fetchStationList } from "./stations";
 
 type RawScheduleItem = {
@@ -28,7 +29,7 @@ function parseItem(row: RawScheduleItem): ScheduleDeparture {
     line: row.LINE?.trim() ?? "",
     lineCode: row.LINECODE?.trim() ?? "",
     lineAbbrev: row.LINEABBREVIATION?.trim() ?? "",
-    track: row.TRACK?.trim() || null,
+    track: normalizePlatformTrack(row.TRACK?.trim() || null),
     scheduledAt: row.SCHED_DEP_DATE?.trim() ?? "",
     status: row.STATUS?.trim() ?? "",
     secLate: Number.isFinite(secLate) ? secLate : 0,
@@ -94,5 +95,5 @@ export function matchPlatformTrack(
   if (!trainNumber?.trim()) return null;
   const id = normalizeTrainId(trainNumber);
   const hit = items.find((i) => normalizeTrainId(i.trainId) === id);
-  return hit?.track ?? null;
+  return normalizePlatformTrack(hit?.track ?? null);
 }

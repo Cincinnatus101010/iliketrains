@@ -6,7 +6,7 @@ import { useSteddy } from "steddy";
 import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
 import { formatNjDateTime } from "@/lib/formatTime";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
-import { lineName } from "@/lib/nj/lines";
+import { NJ_LINES } from "@/lib/nj/lines";
 import type { NjStation } from "@/lib/types";
 
 type SchedulePanelProps = {
@@ -20,10 +20,16 @@ export function SchedulePanel({ activeLine, defaultStationCode }: SchedulePanelP
   const [stations, setStations] = useState<NjStation[]>([]);
   const [stationCode, setStationCode] = useState(defaultStationCode ?? DEFAULT_STATION);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [routeFilter, setRouteFilter] = useState("");
 
   useEffect(() => {
     if (defaultStationCode) setStationCode(defaultStationCode);
   }, [defaultStationCode]);
+
+  useEffect(() => {
+    const parsed = parseLineKey(activeLine);
+    if (parsed?.network === "njt") setRouteFilter(parsed.route);
+  }, [activeLine]);
 
   useEffect(() => {
     void fetch("/api/stations")
@@ -36,29 +42,22 @@ export function SchedulePanel({ activeLine, defaultStationCode }: SchedulePanelP
   }, []);
 
   const scheduleKey = useMemo(
-    () => ["schedule", stationCode, activeLine ?? ""] as const,
-    [stationCode, activeLine],
+    () => ["schedule", stationCode, routeFilter] as const,
+    [stationCode, routeFilter],
   );
 
   const { data, error, isLoading, isValidating } = useSteddy(
     scheduleKey,
     fetchStationScheduleClient,
     {
-      staleTime: 60_000,
+      staleTime: routeFilter ? 30 * 60_000 : 60_000,
     },
   );
 
-  const njRouteFilter = useMemo(() => {
-    const parsed = parseLineKey(activeLine);
-    if (parsed?.network !== "njt") return null;
-    return parsed.route;
-  }, [activeLine]);
-
-  const items = useMemo(() => {
-    const list = data?.items ?? [];
-    if (!njRouteFilter) return list;
-    return list.filter((i) => i.lineAbbrev.toUpperCase() === njRouteFilter.toUpperCase());
-  }, [data?.items, njRouteFilter]);
+  const items = data?.items ?? [];
+  const routeLabel = routeFilter
+    ? (NJ_LINES.find((l) => l.id === routeFilter)?.name ?? routeFilter)
+    : null;
 
   return (
     <div className="train-panel-inner">
@@ -85,8 +84,26 @@ export function SchedulePanel({ activeLine, defaultStationCode }: SchedulePanelP
         </select>
       </label>
 
+      <label className="schedule-station-field">
+        <span className="schedule-station-label">Line</span>
+        <select
+          className="schedule-station-select"
+          value={routeFilter}
+          onChange={(e) => setRouteFilter(e.target.value)}
+        >
+          <option value="">All lines (next 19 departures)</option>
+          {NJ_LINES.map((line) => (
+            <option key={line.id} value={line.id}>
+              {line.name} ({line.id})
+            </option>
+          ))}
+        </select>
+      </label>
+
       <p className="panel-meta">
-        Next {items.length} departures
+        {routeFilter
+          ? `${items.length} upcoming ${routeLabel} departures`
+          : `Next ${items.length} departures`}
         {data?.stationName ? ` · ${data.stationName}` : ""}
         {isValidating ? " · updating…" : ""}
       </p>
@@ -105,6 +122,15 @@ export function SchedulePanel({ activeLine, defaultStationCode }: SchedulePanelP
             <Typography tone="muted">Loading schedule…</Typography>
           </li>
         )}
+        {!isLoading && items.length === 0 && (
+          <li className="train-list-empty">
+            <Typography tone="muted">
+              {routeFilter
+                ? "No upcoming departures for this line at this station."
+                : "No departures returned."}
+            </Typography>
+          </li>
+        )}
         {items.map((item) => (
           <li key={`${item.trainId}-${item.scheduledAt}`}>
             <div className="schedule-row">
@@ -115,8 +141,8 @@ export function SchedulePanel({ activeLine, defaultStationCode }: SchedulePanelP
               <div className="schedule-row-body">
                 <span className="schedule-dest">{item.destination}</span>
                 <span className="schedule-line">
-                  {item.lineAbbrev ? lineName(item.lineAbbrev) : item.line}
-                  {item.trainId ? ` · #${item.trainId}` : ""}
+                  {routeFilter ? `#${item.trainId}` : item.lineAbbrev || item.line}
+                  {!routeFilter && item.trainId ? ` · #${item.trainId}` : ""}
                 </span>
               </div>
               <div className="schedule-track" title="Platform track">

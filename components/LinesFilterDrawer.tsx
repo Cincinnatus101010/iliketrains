@@ -1,8 +1,8 @@
 "use client";
 
-import { LineLegend } from "./LineLegend";
 import type { LineKey } from "@/lib/lineKey";
 import type { MapScope } from "@/lib/types";
+import { LineLegend } from "./LineLegend";
 
 type LinesFilterDrawerProps = {
   open: boolean;
@@ -58,7 +58,6 @@ export function LinesFilterDrawer({
         </div>
 
         <LineLegend
-          variant="drawer"
           scope={scope}
           activeLine={activeLine}
           onSelectLine={onSelectLine}

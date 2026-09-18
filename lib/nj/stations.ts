@@ -45,7 +45,10 @@ export async function fetchStationList(token: string): Promise<NjStation[]> {
   return stations;
 }
 
-export function resolveStationCode(stopName: string | null | undefined, stations: NjStation[]): string | null {
+export function resolveStationCode(
+  stopName: string | null | undefined,
+  stations: NjStation[],
+): string | null {
   if (!stopName?.trim()) return null;
   const key = normalize(stopName);
 

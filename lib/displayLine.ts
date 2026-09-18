@@ -1,6 +1,6 @@
-import type { LiveTrain } from "@/lib/types";
-import { lineName as njLineName } from "@/lib/nj/lines";
 import { subwayLineName } from "@/lib/mta/lines";
+import { lineName as njLineName } from "@/lib/nj/lines";
+import type { LiveTrain } from "@/lib/types";
 
 export function displayLineName(train: LiveTrain): string {
   if (train.network === "mta") return subwayLineName(train.route);

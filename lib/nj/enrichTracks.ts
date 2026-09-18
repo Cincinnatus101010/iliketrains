@@ -1,8 +1,8 @@
-import type { LiveTrain } from "@/lib/types";
-import type { ScheduleDeparture } from "@/lib/types";
-import { findNearestStop } from "./stopIndex";
-import { fetchStationList, resolveStationCode } from "./stations";
+import type { LiveTrain, ScheduleDeparture } from "@/lib/types";
+import { normalizePlatformTrack } from "./platformTrack";
 import { fetchStationSchedule, matchPlatformTrack } from "./schedule";
+import { fetchStationList, resolveStationCode } from "./stations";
+import { findNearestStop } from "./stopIndex";
 
 const scheduleCache = new Map<string, { at: number; items: ScheduleDeparture[] }>();
 const SCHEDULE_CACHE_MS = 25_000;
@@ -82,7 +82,9 @@ export async function enrichLiveTrainsWithTracks(
     const ctx = contextById.get(train.id);
     if (!ctx) return train;
 
-    const platformTrack = matchPlatformTrack(train.trainNumber, itemsByCode.get(ctx.code) ?? []);
+    const platformTrack = normalizePlatformTrack(
+      matchPlatformTrack(train.trainNumber, itemsByCode.get(ctx.code) ?? []),
+    );
     if (!platformTrack) {
       if (!train.stopName && ctx.name) {
         return { ...train, stopName: ctx.name };

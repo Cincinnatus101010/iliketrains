@@ -120,10 +120,7 @@ function projectOnSegment(
   return { t, lat: qy, lon: qx, d };
 }
 
-function haversineM(
-  a: { lon: number; lat: number },
-  b: { lon: number; lat: number },
-): number {
+function haversineM(a: { lon: number; lat: number }, b: { lon: number; lat: number }): number {
   const r = 6371000;
   const lat1 = (a.lat * Math.PI) / 180;
   const lat2 = (b.lat * Math.PI) / 180;
