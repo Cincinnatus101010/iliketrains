@@ -6,7 +6,8 @@ export function trainPositionsSignature(trains: LiveTrain[]): string {
   const parts = new Array<string>(trains.length);
   for (let i = 0; i < trains.length; i++) {
     const t = trains[i]!;
-    parts[i] = `${t.id}\t${t.latitude.toFixed(5)}\t${t.longitude.toFixed(5)}\t${t.platformTrack ?? ""}\t${t.inMotion ? 1 : 0}`;
+    parts[i] =
+      `${t.id}\t${t.latitude.toFixed(5)}\t${t.longitude.toFixed(5)}\t${t.platformTrack ?? ""}\t${t.inMotion ? 1 : 0}`;
   }
   parts.sort();
   return parts.join("\n");
@@ -18,6 +19,7 @@ export function trainVisualKey(train: LiveTrain): string {
     train.color,
     train.label,
     train.platformTrack ?? "",
+    train.scheduledDeparture ?? "",
     train.inMotion ? "1" : "0",
     train.status,
     train.network,

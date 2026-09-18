@@ -1,7 +1,8 @@
 import maplibregl from "maplibre-gl";
+import { trainMarkerBadge, trainMarkerTitle, trainPopupHtml } from "@/lib/trainDisplay";
 import type { LiveTrain, Network } from "@/lib/types";
+import { shortestTrackGap, type TrackEngine, wrapTrackDist } from "./trackEngine";
 import { trainVisualKey } from "./trainSyncKey";
-import { shortestTrackGap, TrackEngine, wrapTrackDist } from "./trackEngine";
 
 const GLIDE_MIN_GAP_M = 25;
 const MAX_GLIDE_M = 3200;
@@ -32,7 +33,7 @@ function animationDurationForGap(gapM: number, network: Network): number {
 }
 
 function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
 export class TrainMarkerController {
@@ -40,7 +41,8 @@ export class TrainMarkerController {
   private engine: TrackEngine;
   private states = new Map<string, TrackMarkerState>();
   private animFrame: number | null = null;
-  private lastTrains: LiveTrain[] = [];
+  private activePopup: maplibregl.Popup | null = null;
+  private tripHighlightIds = new Set<string>();
 
   constructor(map: maplibregl.Map, engine: TrackEngine) {
     this.map = map;
@@ -54,7 +56,6 @@ export class TrainMarkerController {
   }
 
   sync(trains: LiveTrain[]): void {
-    this.lastTrains = trains;
     const now = performance.now();
     const seen = new Set<string>();
 
@@ -74,11 +75,21 @@ export class TrainMarkerController {
     this.ensureAnimationLoop();
   }
 
+  setTripHighlightTrainIds(ids: Set<string>): void {
+    if (setsEqual(ids, this.tripHighlightIds)) return;
+    this.tripHighlightIds = ids;
+    for (const state of this.states.values()) {
+      this.refreshMarkerVisual(state);
+    }
+  }
+
   dispose(): void {
     if (this.animFrame != null) {
       cancelAnimationFrame(this.animFrame);
       this.animFrame = null;
     }
+    this.activePopup?.remove();
+    this.activePopup = null;
     for (const state of this.states.values()) state.marker.remove();
     this.states.clear();
   }
@@ -202,6 +213,7 @@ export class TrainMarkerController {
     const shell = document.createElement("div");
     shell.className = "map-train-marker-shell";
 
+    const trainId = train.id;
     const el = document.createElement("button");
     el.type = "button";
     shell.appendChild(el);
@@ -214,7 +226,32 @@ export class TrainMarkerController {
       rotationAlignment: "map",
     });
 
+    el.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const state = this.states.get(trainId);
+      if (!state) return;
+      this.openPopup(marker, state.train);
+    });
+
     return { marker, contentRoot: shell };
+  }
+
+  private openPopup(marker: maplibregl.Marker, train: LiveTrain): void {
+    this.activePopup?.remove();
+    const popup = new maplibregl.Popup({
+      closeButton: true,
+      closeOnClick: true,
+      offset: 14,
+      className: "map-train-popup-wrap",
+      maxWidth: "240px",
+    })
+      .setLngLat(marker.getLngLat())
+      .setHTML(trainPopupHtml(train))
+      .addTo(this.map);
+    popup.on("close", () => {
+      if (this.activePopup === popup) this.activePopup = null;
+    });
+    this.activePopup = popup;
   }
 
   private refreshMarkerVisual(state: TrackMarkerState): void {
@@ -222,30 +259,19 @@ export class TrainMarkerController {
     const el = state.contentRoot.querySelector("button");
     if (!el) return;
 
-    const label =
-      train.network === "mta"
-        ? train.route
-        : (train.platformTrack ??
-          (train.route.length > 3 ? train.route.slice(0, 3) : train.route));
-
-    const titleParts = [
-      train.lineName,
-      train.direction ? train.direction : null,
-      train.network === "mta" ? train.label : `Next ${train.label}`,
-      train.platformTrack ? `Trk ${train.platformTrack}` : null,
-      train.status,
-    ].filter(Boolean);
+    const onTrip = this.tripHighlightIds.has(train.id);
 
     el.className = [
       "map-train-marker",
       train.platformTrack ? "map-train-marker--track" : "",
       train.inMotion ? "map-train-marker--moving" : "",
+      onTrip ? "map-train-marker--trip" : "",
     ]
       .filter(Boolean)
       .join(" ");
     el.style.background = train.color;
-    el.textContent = label;
-    el.title = titleParts.join(" · ");
+    el.textContent = trainMarkerBadge(train);
+    el.title = trainMarkerTitle(train);
   }
 
   private ensureAnimationLoop(): void {
@@ -290,4 +316,12 @@ export class TrainMarkerController {
 
     this.animFrame = requestAnimationFrame(tick);
   }
+}
+
+function setsEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const id of a) {
+    if (!b.has(id)) return false;
+  }
+  return true;
 }
