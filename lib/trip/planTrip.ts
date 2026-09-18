@@ -1,6 +1,6 @@
-import type { PlannedRoute, RouteStep } from "./types";
-import { routeColor } from "./routeColor";
 import type { TripGraph } from "./loadGraph";
+import { routeColor } from "./routeColor";
+import type { PlannedRoute, RouteStep } from "./types";
 
 export function planTrip(graph: TripGraph, fromKey: string, toKey: string): PlannedRoute | null {
   if (!graph.nodes.has(fromKey) || !graph.nodes.has(toKey)) {
@@ -75,6 +75,7 @@ function buildSteps(graph: TripGraph, nodes: string[], edgeRoutes: string[]): Ro
       fromName: fromNode.name,
       toName: toNode.name,
       color: kind === "ride" ? routeColor(route) : null,
+      network: kind === "ride" ? (fromNode.network === "njt" ? "njt" : "mta") : undefined,
     });
     segStart = i + 1;
   }

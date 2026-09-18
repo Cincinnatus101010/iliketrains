@@ -1,24 +1,29 @@
 "use client";
 
+import { Typography } from "@iantroisi/ui";
 import { useEffect, useMemo, useState } from "react";
 import { useSteddy } from "steddy";
-import { Typography } from "@iantroisi/ui";
 import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
 import { formatNjDateTime } from "@/lib/formatTime";
-import { parseLineKey, type LineKey } from "@/lib/lineKey";
+import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { lineName } from "@/lib/nj/lines";
 import type { NjStation } from "@/lib/types";
 
 type SchedulePanelProps = {
   activeLine: LineKey | null;
+  defaultStationCode?: string | null;
 };
 
 const DEFAULT_STATION = "NP";
 
-export function SchedulePanel({ activeLine }: SchedulePanelProps) {
+export function SchedulePanel({ activeLine, defaultStationCode }: SchedulePanelProps) {
   const [stations, setStations] = useState<NjStation[]>([]);
-  const [stationCode, setStationCode] = useState(DEFAULT_STATION);
+  const [stationCode, setStationCode] = useState(defaultStationCode ?? DEFAULT_STATION);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (defaultStationCode) setStationCode(defaultStationCode);
+  }, [defaultStationCode]);
 
   useEffect(() => {
     void fetch("/api/stations")
@@ -35,13 +40,17 @@ export function SchedulePanel({ activeLine }: SchedulePanelProps) {
     [stationCode, activeLine],
   );
 
-  const { data, error, isLoading, isValidating } = useSteddy(scheduleKey, fetchStationScheduleClient, {
-    staleTime: 60_000,
-  });
+  const { data, error, isLoading, isValidating } = useSteddy(
+    scheduleKey,
+    fetchStationScheduleClient,
+    {
+      staleTime: 60_000,
+    },
+  );
 
   const njRouteFilter = useMemo(() => {
     const parsed = parseLineKey(activeLine);
-    if (!parsed || parsed.network !== "njt") return null;
+    if (parsed?.network !== "njt") return null;
     return parsed.route;
   }, [activeLine]);
 
@@ -84,7 +93,9 @@ export function SchedulePanel({ activeLine }: SchedulePanelProps) {
 
       {Boolean(loadError || data?.error || error) && (
         <p className="panel-error">
-          {loadError ?? data?.error ?? (error instanceof Error ? error.message : error ? String(error) : "")}
+          {loadError ??
+            data?.error ??
+            (error instanceof Error ? error.message : error ? String(error) : "")}
         </p>
       )}
 

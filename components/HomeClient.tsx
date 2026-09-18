@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { pollingRevalidate, serializeKey, useSteddy, type Coordinator } from "steddy";
+import { useEffect, useMemo, useState } from "react";
+import { type Coordinator, pollingRevalidate, serializeKey, useSteddy } from "steddy";
 import { fetchNjTrains } from "@/lib/fetchNjTrains";
 import { fetchSubwayTrains } from "@/lib/fetchSubwayTrains";
-import { lineKey, parseLineKey, trainMatchesLineKey, type LineKey } from "@/lib/lineKey";
-import type { MapScope } from "@/lib/types";
+import { type LineKey, lineKey, parseLineKey, trainMatchesLineKey } from "@/lib/lineKey";
 import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
-import { readSavedTrip, writeSavedTrip, type SavedTrip } from "@/lib/trip/savedTrip";
+import { readSavedTrip, type SavedTrip, writeSavedTrip } from "@/lib/trip/savedTrip";
+import { trainMatchesTrip } from "@/lib/trip/tripLines";
+import type { MapScope } from "@/lib/types";
 import { ActiveTripCard } from "./ActiveTripCard";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 
-const NavigationSheet = dynamic(
-  () => import("./NavigationSheet").then((m) => m.NavigationSheet),
-  { ssr: false },
-);
+const NavigationSheet = dynamic(() => import("./NavigationSheet").then((m) => m.NavigationSheet), {
+  ssr: false,
+});
 
 const NjLiveMap = dynamic(() => import("./NjLiveMap").then((m) => m.NjLiveMap), {
   ssr: false,
@@ -41,11 +41,12 @@ export function HomeClient({ coordinator }: HomeClientProps) {
   const [bottomCollapsed, setBottomCollapsed] = useState(true);
   const [linesOpen, setLinesOpen] = useState(false);
 
-  const { data: njData, error: njError, isLoading: njLoading, isValidating: njValidating } = useSteddy(
-    NJ_KEY,
-    fetchNjTrains,
-    { staleTime: NJ_POLL_MS },
-  );
+  const {
+    data: njData,
+    error: njError,
+    isLoading: njLoading,
+    isValidating: njValidating,
+  } = useSteddy(NJ_KEY, fetchNjTrains, { staleTime: NJ_POLL_MS });
 
   const {
     data: subwayData,
@@ -107,6 +108,17 @@ export function HomeClient({ coordinator }: HomeClientProps) {
 
   const mapTrainsSignature = useMemo(() => trainPositionsSignature(visibleTrains), [visibleTrains]);
 
+  const tripHighlightTrainIds = useMemo(() => {
+    if (!savedTrip) return new Set<string>();
+    const ids = scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).map((t) => t.id);
+    return new Set(ids);
+  }, [scopedTrains, savedTrip]);
+
+  const tripHighlightKey = useMemo(
+    () => [...tripHighlightTrainIds].sort().join("\n"),
+    [tripHighlightTrainIds],
+  );
+
   const plannedRouteCoords = savedTrip?.route.coordinatesLonLat ?? null;
   const plannedRouteFitKey = savedTrip
     ? `${savedTrip.fromKey}:${savedTrip.toKey}:${savedTrip.savedAt}`
@@ -156,7 +168,9 @@ export function HomeClient({ coordinator }: HomeClientProps) {
         >
           Lines
           {activeLine && (
-            <span className="map-top-controls-active">{parseLineKey(activeLine)?.route ?? "1"}</span>
+            <span className="map-top-controls-active">
+              {parseLineKey(activeLine)?.route ?? "1"}
+            </span>
           )}
         </button>
         <button
@@ -172,7 +186,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
           </span>
         </button>
         <span className="map-top-controls-meta glass">
-          {validating && <span className="bottom-pane-live-dot" aria-label="Updating" />}
+          {validating && <span className="bottom-pane-live-dot" title="Updating" />}
           <span className="map-top-controls-count">{scopedTrains.length} live</span>
         </span>
       </div>
@@ -185,6 +199,8 @@ export function HomeClient({ coordinator }: HomeClientProps) {
           padding={mapPadding}
           plannedRoute={plannedRouteCoords}
           plannedRouteFitKey={plannedRouteFitKey}
+          tripHighlightTrainIds={tripHighlightTrainIds}
+          tripHighlightKey={tripHighlightKey}
         />
 
         {savedTrip && (
@@ -197,7 +213,8 @@ export function HomeClient({ coordinator }: HomeClientProps) {
 
         {!njConfigured && (
           <div className="map-pane-alert glass" role="status">
-            Set <code>NJTRANSIT_USERNAME</code> / <code>NJTRANSIT_PASSWORD</code> in <code>.env.local</code>
+            Set <code>NJTRANSIT_USERNAME</code> / <code>NJTRANSIT_PASSWORD</code> in{" "}
+            <code>.env.local</code>
           </div>
         )}
         {apiErrors.length > 0 && (
@@ -219,11 +236,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
         </button>
       </section>
 
-      <section
-        className="bottom-pane glass"
-        aria-label="Live trains"
-        aria-expanded={!bottomCollapsed}
-      >
+      <section className="bottom-pane glass" aria-label="Live trains">
         {!bottomCollapsed && (
           <DockPanel
             trains={scopedTrains}
@@ -232,6 +245,8 @@ export function HomeClient({ coordinator }: HomeClientProps) {
             updatedAt={updatedAt}
             activeLine={activeLine}
             onRefresh={refresh}
+            savedTrip={savedTrip}
+            tripHighlightTrainIds={tripHighlightTrainIds}
           />
         )}
       </section>
@@ -250,7 +265,10 @@ export function HomeClient({ coordinator }: HomeClientProps) {
         open={navOpen}
         onClose={() => setNavOpen(false)}
         initialTrip={savedTrip}
-        onStartTrip={(trip) => setSavedTrip(trip)}
+        onStartTrip={(trip) => {
+          setSavedTrip(trip);
+          setBottomCollapsed(false);
+        }}
         onEndTrip={() => setSavedTrip(null)}
       />
     </div>

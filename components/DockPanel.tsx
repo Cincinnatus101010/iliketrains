@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { TrainPanel } from "./TrainPanel";
-import { SchedulePanel } from "./SchedulePanel";
+import { useEffect, useState } from "react";
 import type { LineKey } from "@/lib/lineKey";
+import type { SavedTrip } from "@/lib/trip/savedTrip";
+import { njStationCodeFromTripKey } from "@/lib/trip/tripLines";
 import type { LiveTrain } from "@/lib/types";
+import { SchedulePanel } from "./SchedulePanel";
+import { TrainPanel } from "./TrainPanel";
+import { TripLivePanel } from "./TripLivePanel";
 
-type DockTab = "live" | "schedule";
+type DockTab = "trip" | "live" | "schedule";
 
 type DockPanelProps = {
   trains: LiveTrain[];
@@ -15,14 +18,33 @@ type DockPanelProps = {
   updatedAt?: string;
   activeLine: LineKey | null;
   onRefresh: () => void;
+  savedTrip: SavedTrip | null;
+  tripHighlightTrainIds: Set<string>;
 };
 
-export function DockPanel(props: DockPanelProps) {
-  const [tab, setTab] = useState<DockTab>("live");
+export function DockPanel({ savedTrip, tripHighlightTrainIds, ...props }: DockPanelProps) {
+  const [tab, setTab] = useState<DockTab>(savedTrip ? "trip" : "live");
+
+  useEffect(() => {
+    if (savedTrip) setTab("trip");
+  }, [savedTrip?.savedAt]);
+
+  const scheduleStationCode = savedTrip ? njStationCodeFromTripKey(savedTrip.fromKey) : null;
 
   return (
     <div className="dock-panel">
       <div className="dock-tabs" role="tablist" aria-label="Panel mode">
+        {savedTrip && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "trip"}
+            className={`dock-tab ${tab === "trip" ? "dock-tab--on" : ""}`}
+            onClick={() => setTab("trip")}
+          >
+            Trip
+          </button>
+        )}
         <button
           type="button"
           role="tab"
@@ -42,7 +64,13 @@ export function DockPanel(props: DockPanelProps) {
           Schedule
         </button>
       </div>
-      {tab === "live" ? <TrainPanel {...props} /> : <SchedulePanel activeLine={props.activeLine} />}
+      {tab === "trip" && savedTrip ? (
+        <TripLivePanel trip={savedTrip} trains={props.trains} activeLine={props.activeLine} />
+      ) : tab === "live" ? (
+        <TrainPanel {...props} highlightTrainIds={tripHighlightTrainIds} />
+      ) : (
+        <SchedulePanel activeLine={props.activeLine} defaultStationCode={scheduleStationCode} />
+      )}
     </div>
   );
 }

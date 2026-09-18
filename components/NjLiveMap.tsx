@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
-import { parseLineKey, type LineKey } from "@/lib/lineKey";
+import maplibregl from "maplibre-gl";
+import { useEffect, useRef } from "react";
+import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { observeMapContainerResize } from "@/lib/map/mapResize";
 import { TrackEngine } from "@/lib/map/trackEngine";
 import { TrainMarkerController } from "@/lib/map/trainMarkerController";
@@ -21,6 +21,8 @@ type NjLiveMapProps = {
   padding: MapPadding;
   plannedRoute: [number, number][] | null;
   plannedRouteFitKey: string | null;
+  tripHighlightTrainIds: Set<string>;
+  tripHighlightKey: string;
 };
 
 export function NjLiveMap({
@@ -30,6 +32,8 @@ export function NjLiveMap({
   padding,
   plannedRoute,
   plannedRouteFitKey,
+  tripHighlightTrainIds,
+  tripHighlightKey,
 }: NjLiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GameMap | null>(null);
@@ -138,6 +142,10 @@ export function NjLiveMap({
   }, [trains, trainsSignature]);
 
   useEffect(() => {
+    markersRef.current?.setTripHighlightTrainIds(tripHighlightTrainIds);
+  }, [tripHighlightKey, tripHighlightTrainIds]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !layersReady.current) return;
 
@@ -147,7 +155,11 @@ export function NjLiveMap({
 
     if (!plannedRoute || plannedRoute.length < 2) {
       lastRouteFitKeyRef.current = null;
-      source.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } });
+      source.setData({
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: [] },
+      });
       return;
     }
 
