@@ -6,14 +6,17 @@ import { collectFetchErrors } from "@/lib/collectFetchErrors";
 import { fetchFollowedTrain } from "@/lib/fetchFollowedTrain";
 import { fetchNjTrains } from "@/lib/fetchNjTrains";
 import { fetchSubwayTrains } from "@/lib/fetchSubwayTrains";
+import {
+  EMPTY_TRAINS_RESPONSE,
+  FOLLOWED_TRAIN_POLL_MS,
+  followedTrainKey,
+  NJ_TRAINS_KEY,
+  NJ_TRAINS_POLL_MS,
+  SUBWAY_TRAINS_KEY,
+  SUBWAY_TRAINS_POLL_MS,
+} from "@/lib/liveFeedConfig";
 import { pickLatestUpdatedAt } from "@/lib/pickLatestUpdatedAt";
-import type { LiveTrain, TrainsResponse } from "@/lib/types";
-
-const NJ_KEY = ["nj-trains"] as const;
-const SUBWAY_KEY = ["subway-trains"] as const;
-const NJ_POLL_MS = 20_000;
-const SUBWAY_POLL_MS = 5_000;
-const FOLLOW_POLL_MS = 5_000;
+import type { LiveTrain } from "@/lib/types";
 
 type UseLiveTrainFeedsOptions = {
   trackingTrainId: string | null;
@@ -24,10 +27,8 @@ function forceRevalidate<T>(mutate: MutateFn<T>, fallback: T) {
   void mutate((current) => current ?? fallback, { revalidate: true });
 }
 
-const EMPTY_TRAINS: TrainsResponse = { trains: [], error: null, configured: true };
-
 export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFeedsOptions) {
-  const followKey = trackingTrainId ? (["followed-train", trackingTrainId] as const) : null;
+  const followKey = trackingTrainId ? followedTrainKey(trackingTrainId) : null;
 
   const {
     data: njData,
@@ -35,9 +36,9 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     isLoading: njLoading,
     isValidating: njValidating,
     mutate: mutateNj,
-  } = useSteddy(isOnboard ? null : NJ_KEY, fetchNjTrains, {
-    staleTime: NJ_POLL_MS,
-    refetchInterval: NJ_POLL_MS,
+  } = useSteddy(isOnboard ? null : NJ_TRAINS_KEY, fetchNjTrains, {
+    staleTime: NJ_TRAINS_POLL_MS,
+    refetchInterval: NJ_TRAINS_POLL_MS,
   });
 
   const {
@@ -46,9 +47,9 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     isLoading: subwayLoading,
     isValidating: subwayValidating,
     mutate: mutateSubway,
-  } = useSteddy(isOnboard ? null : SUBWAY_KEY, fetchSubwayTrains, {
-    staleTime: SUBWAY_POLL_MS,
-    refetchInterval: SUBWAY_POLL_MS,
+  } = useSteddy(isOnboard ? null : SUBWAY_TRAINS_KEY, fetchSubwayTrains, {
+    staleTime: SUBWAY_TRAINS_POLL_MS,
+    refetchInterval: SUBWAY_TRAINS_POLL_MS,
   });
 
   const {
@@ -58,17 +59,17 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     isValidating: followValidating,
     mutate: mutateFollow,
   } = useSteddy(followKey, fetchFollowedTrain, {
-    staleTime: FOLLOW_POLL_MS,
-    refetchInterval: FOLLOW_POLL_MS,
+    staleTime: FOLLOWED_TRAIN_POLL_MS,
+    refetchInterval: FOLLOWED_TRAIN_POLL_MS,
   });
 
   const refresh = useCallback(() => {
     if (trackingTrainId) {
-      forceRevalidate(mutateFollow, EMPTY_TRAINS);
+      forceRevalidate(mutateFollow, EMPTY_TRAINS_RESPONSE);
       return;
     }
-    forceRevalidate(mutateNj, EMPTY_TRAINS);
-    forceRevalidate(mutateSubway, EMPTY_TRAINS);
+    forceRevalidate(mutateNj, EMPTY_TRAINS_RESPONSE);
+    forceRevalidate(mutateSubway, EMPTY_TRAINS_RESPONSE);
   }, [trackingTrainId, mutateFollow, mutateNj, mutateSubway]);
 
   const allTrains = useMemo((): LiveTrain[] => {
