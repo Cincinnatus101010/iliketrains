@@ -21,6 +21,8 @@ export type LiveTrain = {
   scheduledDeparture: string | null;
   status: string;
   inMotion: boolean;
+  /** NJ/MTA: train is stopped at a platform (not just passing). */
+  atStation?: boolean;
 };
 
 export type TrainsResponse = {

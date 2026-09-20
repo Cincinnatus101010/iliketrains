@@ -26,23 +26,35 @@ function statusLabel(status: VehicleStopStatusValue | null | undefined): string 
   }
 }
 
+function readGps(pos: VehiclePosition["position"]): { lat: number; lon: number } | null {
+  if (!pos) return null;
+  const lat = pos.latitude ?? 0;
+  const lon = pos.longitude ?? 0;
+  if (Math.abs(lat) < 0.01 && Math.abs(lon) < 0.01) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return { lat, lon };
+}
+
 function resolveLocation(
   vehicle: VehiclePosition,
   rawStopId: string | null,
   anchorStopId: string | null,
+  currentStatus: VehicleStopStatusValue | null | undefined,
 ): { lat: number; lon: number } | null {
+  const gps = readGps(vehicle.position);
+  const atPlatform = currentStatus === 1;
+
+  if (!atPlatform && gps) {
+    return gps;
+  }
+
   const fromRaw = tryGetStopCoordinates(rawStopId);
   if (fromRaw) return fromRaw;
 
   const fromAnchor = tryGetStopCoordinates(anchorStopId);
   if (fromAnchor) return fromAnchor;
 
-  const pos = vehicle.position;
-  if (pos && (Math.abs(pos.latitude ?? 0) >= 0.01 || Math.abs(pos.longitude ?? 0) >= 0.01)) {
-    return { lat: pos.latitude ?? 0, lon: pos.longitude ?? 0 };
-  }
-
-  return null;
+  return gps;
 }
 
 export function parseSubwayEntity(entity: FeedEntity): LiveTrain | null {
@@ -57,12 +69,13 @@ export function parseSubwayEntity(entity: FeedEntity): LiveTrain | null {
 
   const rawStopId = vehicle.stopId?.trim() || null;
   const anchorStopId = getAnchorStopId(rawStopId);
-  const loc = resolveLocation(vehicle, rawStopId, anchorStopId);
+  const loc = resolveLocation(vehicle, rawStopId, anchorStopId, vehicle.currentStatus ?? undefined);
   if (!loc) return null;
 
   const trainId = vehicle.vehicle?.id ?? entity.id ?? crypto.randomUUID();
   const stopName = getStopName(rawStopId) ?? getStopName(anchorStopId);
   const status = statusLabel(vehicle.currentStatus ?? undefined);
+  const atStation = vehicle.currentStatus === 1;
   const inMotion = vehicle.currentStatus === 0 || vehicle.currentStatus === 2;
   const label = stopName?.trim() ? stopName : status;
 
@@ -85,6 +98,7 @@ export function parseSubwayEntity(entity: FeedEntity): LiveTrain | null {
     scheduledDeparture: null,
     status,
     inMotion,
+    atStation,
   };
 }
 

@@ -2,7 +2,7 @@
 
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
 import maplibregl from "maplibre-gl";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { observeMapContainerResize } from "@/lib/map/mapResize";
 import { TrackEngine } from "@/lib/map/trackEngine";
@@ -24,6 +24,7 @@ type NjLiveMapProps = {
   tripHighlightTrainIds: Set<string>;
   tripHighlightKey: string;
   followedTrainId: string | null;
+  followedTrainLiveKey: string | null;
   onFollowTrain: (trainId: string) => void;
   onClearFollow: () => void;
 };
@@ -38,6 +39,7 @@ export function NjLiveMap({
   tripHighlightTrainIds,
   tripHighlightKey,
   followedTrainId,
+  followedTrainLiveKey,
   onFollowTrain,
   onClearFollow,
 }: NjLiveMapProps) {
@@ -57,6 +59,8 @@ export function NjLiveMap({
   followedTrainIdRef.current = followedTrainId;
   const paddingRef = useRef(padding);
   paddingRef.current = padding;
+  const followPanFromMapRef = useRef(false);
+  const prevFollowIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +101,9 @@ export function NjLiveMap({
       map.on("pitchstart", onUserPan);
 
       const onViewSettled = () => {
+        if (followPanFromMapRef.current) {
+          followPanFromMapRef.current = false;
+        }
         controller.refreshPositions();
       };
       map.on("zoomend", onViewSettled);
@@ -148,100 +155,93 @@ export function NjLiveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once
   }, []);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.setPadding(padding);
-  }, [padding]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !layersReady.current) return;
-    applyLineHighlight(map, highlightLine);
-  }, [highlightLine]);
-
-  useEffect(() => {
-    if (!engineRef.current?.ready || !markersRef.current) return;
-    markersRef.current.sync(trains);
-  }, [trains, trainsSignature]);
-
-  useEffect(() => {
-    markersRef.current?.setTripHighlightTrainIds(tripHighlightTrainIds);
-  }, [tripHighlightKey, tripHighlightTrainIds]);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     const map = mapRef.current;
     const controller = markersRef.current;
-    if (!map || !controller) return;
+    if (!map || !controller || !layersReady.current) return;
+
+    map.setPadding(padding);
+    applyLineHighlight(map, highlightLine);
+    controller.sync(trains);
+    controller.setTripHighlightTrainIds(tripHighlightTrainIds);
+
+    const panToTrain = (lngLat: [number, number]) => {
+      followPanFromMapRef.current = true;
+      map.jumpTo({
+        center: lngLat,
+        zoom: Math.max(map.getZoom(), 12.5),
+        padding,
+      });
+    };
 
     controller.setFollowHandlers(
       followedTrainId,
       onFollowTrain,
-      followedTrainId
-        ? (lngLat) => {
-            map.easeTo({
-              center: lngLat,
-              zoom: Math.max(map.getZoom(), 12.5),
-              duration: 0,
-              padding,
-              essential: true,
-            });
-          }
-        : null,
+      followedTrainId ? (lngLat) => panToTrain(lngLat) : null,
     );
-  }, [followedTrainId, onFollowTrain, padding]);
 
-  useEffect(() => {
-    if (!followedTrainId) return;
-    const map = mapRef.current;
-    const train = trainsRef.current.find((t) => t.id === followedTrainId);
-    if (!map || !train) return;
-    map.easeTo({
-      center: [train.longitude, train.latitude],
-      zoom: Math.max(map.getZoom(), 12.5),
-      duration: 700,
-      padding,
-      essential: true,
-    });
-  }, [followedTrainId, padding]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !layersReady.current) return;
+    if (followedTrainId && followedTrainLiveKey) {
+      const train = trains.find((t) => t.id === followedTrainId);
+      if (train) {
+        const initialFocus = prevFollowIdRef.current !== followedTrainId;
+        prevFollowIdRef.current = followedTrainId;
+        followPanFromMapRef.current = true;
+        const center: [number, number] = [train.longitude, train.latitude];
+        const zoom = Math.max(map.getZoom(), 12.5);
+        if (initialFocus) {
+          map.easeTo({ center, zoom, duration: 700, padding, essential: true });
+        } else {
+          map.jumpTo({ center, zoom, padding });
+        }
+      }
+    } else {
+      prevFollowIdRef.current = null;
+    }
 
     ensurePlannedRouteLayer(map);
     const source = map.getSource("planned-route") as maplibregl.GeoJSONSource | undefined;
-    if (!source) return;
+    if (source) {
+      if (!plannedRoute || plannedRoute.length < 2) {
+        lastRouteFitKeyRef.current = null;
+        source.setData({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: [] },
+        });
+      } else {
+        source.setData({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: plannedRoute },
+        });
 
-    if (!plannedRoute || plannedRoute.length < 2) {
-      lastRouteFitKeyRef.current = null;
-      source.setData({
-        type: "Feature",
-        properties: {},
-        geometry: { type: "LineString", coordinates: [] },
-      });
-      return;
+        if (plannedRouteFitKey && plannedRouteFitKey !== lastRouteFitKeyRef.current) {
+          lastRouteFitKeyRef.current = plannedRouteFitKey;
+          const lons = plannedRoute.map((c) => c[0]);
+          const lats = plannedRoute.map((c) => c[1]);
+          map.fitBounds(
+            [
+              [Math.min(...lons), Math.min(...lats)],
+              [Math.max(...lons), Math.max(...lats)],
+            ],
+            { padding: 48, duration: 900, maxZoom: 14 },
+          );
+        }
+      }
     }
-
-    source.setData({
-      type: "Feature",
-      properties: {},
-      geometry: { type: "LineString", coordinates: plannedRoute },
-    });
-
-    if (!plannedRouteFitKey || plannedRouteFitKey === lastRouteFitKeyRef.current) return;
-    lastRouteFitKeyRef.current = plannedRouteFitKey;
-
-    const lons = plannedRoute.map((c) => c[0]);
-    const lats = plannedRoute.map((c) => c[1]);
-    map.fitBounds(
-      [
-        [Math.min(...lons), Math.min(...lats)],
-        [Math.max(...lons), Math.max(...lats)],
-      ],
-      { padding: 48, duration: 900, maxZoom: 14 },
-    );
-  }, [plannedRoute, plannedRouteFitKey]);
+  }, [
+    trains,
+    trainsSignature,
+    highlightLine,
+    padding,
+    tripHighlightTrainIds,
+    tripHighlightKey,
+    followedTrainId,
+    followedTrainLiveKey,
+    onFollowTrain,
+    plannedRoute,
+    plannedRouteFitKey,
+  ]);
 
   return <div ref={containerRef} className="nj-map" aria-label="NYC and NJ live transit map" />;
 }

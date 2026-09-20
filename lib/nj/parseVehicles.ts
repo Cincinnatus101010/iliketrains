@@ -1,6 +1,7 @@
 import type { LiveTrain } from "@/lib/types";
 import { colorForRoute, routeFromApiLine } from "./njRoutes";
-import { distanceToStopM, findNearestStop, tryGetCoordinates } from "./stopIndex";
+import { njResolveVehiclePosition } from "./routeTracks";
+import { distanceToStopM, findNearestStop } from "./stopIndex";
 
 function getString(row: Record<string, unknown>, key: string): string | null {
   const v = row[key];
@@ -35,14 +36,12 @@ function tryParseCoord(row: Record<string, unknown>, key: string): number | null
 
 function resolveLocation(
   row: Record<string, unknown>,
+  route: string,
   nextStop: string | null,
 ): { lat: number; lon: number } | null {
   const lat = tryParseCoord(row, "LATITUDE");
   const lon = tryParseCoord(row, "LONGITUDE");
-  if (lat != null && lon != null && (Math.abs(lat) >= 0.01 || Math.abs(lon) >= 0.01)) {
-    return { lat, lon };
-  }
-  return tryGetCoordinates(nextStop);
+  return njResolveVehiclePosition(route, nextStop, lat, lon);
 }
 
 export function parseVehicle(row: Record<string, unknown>): LiveTrain | null {
@@ -56,7 +55,7 @@ export function parseVehicle(row: Record<string, unknown>): LiveTrain | null {
   const trackCircuit = getString(row, "ICS_TRACK_CKT")?.trim() ?? null;
   const scheduledDeparture = getString(row, "SCHED_DEP_TIME")?.trim() ?? null;
 
-  const loc = resolveLocation(row, nextStop);
+  const loc = resolveLocation(row, route, nextStop);
   if (!loc) return null;
 
   const lateMin = parseLateMinutes(getString(row, "SEC_LATE"));
@@ -87,5 +86,6 @@ export function parseVehicle(row: Record<string, unknown>): LiveTrain | null {
     scheduledDeparture,
     status,
     inMotion,
+    atStation,
   };
 }

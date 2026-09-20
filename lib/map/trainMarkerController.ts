@@ -46,6 +46,7 @@ export class TrainMarkerController {
   private followedTrainId: string | null = null;
   private onFollowTrain: ((trainId: string) => void) | null = null;
   private onFollowPan: ((lngLat: [number, number]) => void) | null = null;
+  private lastFollowPanLngLat: [number, number] | null = null;
 
   constructor(map: maplibregl.Map, engine: TrackEngine) {
     this.map = map;
@@ -95,6 +96,7 @@ export class TrainMarkerController {
     this.followedTrainId = followedTrainId;
     this.onFollowTrain = onFollowTrain;
     this.onFollowPan = onFollowPan;
+    if (!followedTrainId) this.lastFollowPanLngLat = null;
 
     for (const state of this.states.values()) {
       this.refreshMarkerVisual(state);
@@ -118,6 +120,11 @@ export class TrainMarkerController {
       return;
     }
     const { lng, lat } = state.marker.getLngLat();
+    const prev = this.lastFollowPanLngLat;
+    if (prev && Math.abs(prev[0] - lng) < 1e-6 && Math.abs(prev[1] - lat) < 1e-6) {
+      return;
+    }
+    this.lastFollowPanLngLat = [lng, lat];
     this.onFollowPan([lng, lat]);
   }
 
@@ -170,7 +177,7 @@ export class TrainMarkerController {
 
     state.missedPolls = 0;
 
-    const motionKey = `${train.latitude.toFixed(5)},${train.longitude.toFixed(5)}`;
+    const motionKey = `${train.latitude.toFixed(5)},${train.longitude.toFixed(5)},${train.stopName ?? ""},${train.atStation ? 1 : 0},${train.status}`;
     const visualKey = trainVisualKey(train);
     const motionUnchanged = motionKey === state.motionKey;
     const visualUnchanged = visualKey === state.visualKey;
@@ -178,8 +185,10 @@ export class TrainMarkerController {
     state.train = train;
     if (!visualUnchanged) this.refreshMarkerVisual(state);
     state.visualKey = visualKey;
+    this.refreshFollowPopup(state);
 
     if (motionUnchanged && target.trackDist != null && state.targetTrackDist === target.trackDist) {
+      this.emitFollowPan(state);
       return;
     }
     state.motionKey = motionKey;
@@ -235,7 +244,6 @@ export class TrainMarkerController {
     if (state.trackDist != null && state.animDuration > 0) {
       const pt = this.engine.pointAtDist(state.train.route, state.trackDist);
       if (pt) state.marker.setLngLat([pt.lon, pt.lat]);
-      this.emitFollowPan(state);
       return;
     }
 
@@ -246,7 +254,6 @@ export class TrainMarkerController {
     } else {
       state.marker.setLngLat([target.lon, target.lat]);
     }
-    this.emitFollowPan(state);
   }
 
   private createMarker(train: LiveTrain): { marker: maplibregl.Marker; contentRoot: HTMLElement } {
@@ -277,6 +284,23 @@ export class TrainMarkerController {
     });
 
     return { marker, contentRoot: shell };
+  }
+
+  private refreshFollowPopup(state: TrackMarkerState): void {
+    if (!this.activePopup || this.followedTrainId !== state.train.id) return;
+    this.activePopup.setLngLat(state.marker.getLngLat());
+    this.activePopup.setHTML(
+      trainPopupHtml(state.train, { following: this.followedTrainId === state.train.id }),
+    );
+    const followBtn = this.activePopup
+      .getElement()
+      ?.querySelector<HTMLButtonElement>("[data-train-follow]");
+    followBtn?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.onFollowTrain?.(state.train.id);
+      this.activePopup?.remove();
+    });
   }
 
   private openPopup(marker: maplibregl.Marker, train: LiveTrain): void {
@@ -325,7 +349,7 @@ export class TrainMarkerController {
       .join(" ");
     el.style.background = train.color;
     el.textContent = trainMarkerBadge(train);
-    el.title = trainMarkerTitle(train);
+    el.title = trainMarkerTitle(train, { following: followed });
   }
 
   private ensureAnimationLoop(): void {

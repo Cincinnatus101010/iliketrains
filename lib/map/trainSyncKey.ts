@@ -7,7 +7,7 @@ export function trainPositionsSignature(trains: LiveTrain[]): string {
   for (let i = 0; i < trains.length; i++) {
     const t = trains[i]!;
     parts[i] =
-      `${t.id}\t${t.latitude.toFixed(5)}\t${t.longitude.toFixed(5)}\t${t.platformTrack ?? ""}\t${t.inMotion ? 1 : 0}`;
+      `${t.id}\t${t.latitude.toFixed(5)}\t${t.longitude.toFixed(5)}\t${t.stopName ?? ""}\t${t.atStation ? 1 : 0}\t${t.status}\t${t.platformTrack ?? ""}\t${t.inMotion ? 1 : 0}`;
   }
   parts.sort();
   return parts.join("\n");
@@ -18,10 +18,17 @@ export function trainVisualKey(train: LiveTrain): string {
     train.route,
     train.color,
     train.label,
+    train.stopName ?? "",
     train.platformTrack ?? "",
     train.scheduledDeparture ?? "",
     train.inMotion ? "1" : "0",
+    train.atStation ? "1" : "0",
     train.status,
     train.network,
   ].join("\t");
+}
+
+/** Single-train signature for follow pan / live status (includes stop changes). */
+export function trainLiveSignature(train: LiveTrain): string {
+  return `${train.latitude.toFixed(5)},${train.longitude.toFixed(5)},${train.stopName ?? ""},${train.atStation ? 1 : 0},${train.status},${train.inMotion ? 1 : 0}`;
 }

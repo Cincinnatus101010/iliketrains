@@ -1,5 +1,11 @@
 import { displayLineName } from "@/lib/displayLine";
-import { trainHeadline, trainMeta, trainTimeLabel } from "@/lib/trainDisplay";
+import {
+  trainFollowPrimary,
+  trainFollowSecondary,
+  trainHeadline,
+  trainMeta,
+  trainTimeLabel,
+} from "@/lib/trainDisplay";
 import type { LiveTrain } from "@/lib/types";
 
 type TrainListRowProps = {
@@ -10,7 +16,10 @@ type TrainListRowProps = {
 };
 
 export function TrainListRow({ train, highlight, following, onFollow }: TrainListRowProps) {
-  const meta = trainMeta(train, { includeDeparture: false });
+  const meta = following
+    ? trainFollowSecondary(train)
+    : trainMeta(train, { includeDeparture: false });
+  const stopLine = following ? trainFollowPrimary(train) : trainHeadline(train);
 
   return (
     <div
@@ -22,7 +31,9 @@ export function TrainListRow({ train, highlight, following, onFollow }: TrainLis
           {displayLineName(train)}
           <span className="train-row-network">{train.network === "mta" ? "NY" : "NJ"}</span>
         </span>
-        <span className="train-row-stop">{trainHeadline(train)}</span>
+        <span className={`train-row-stop ${following ? "train-row-stop--follow" : ""}`}>
+          {stopLine}
+        </span>
         {meta ? <span className="train-row-sub">{meta}</span> : null}
       </div>
       <div className="train-row-aside">

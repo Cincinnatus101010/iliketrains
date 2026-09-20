@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { LineKey } from "@/lib/lineKey";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { njStationCodeFromTripKey } from "@/lib/trip/tripLines";
@@ -22,6 +22,8 @@ type DockPanelProps = {
   tripHighlightTrainIds: Set<string>;
   followedTrainId: string | null;
   onFollowTrain: (trainId: string) => void;
+  onEditTrip: () => void;
+  onEndTrip: () => void;
 };
 
 export function DockPanel({
@@ -29,13 +31,11 @@ export function DockPanel({
   tripHighlightTrainIds,
   followedTrainId,
   onFollowTrain,
+  onEditTrip,
+  onEndTrip,
   ...props
 }: DockPanelProps) {
-  const [tab, setTab] = useState<DockTab>(savedTrip ? "trip" : "live");
-
-  useEffect(() => {
-    if (savedTrip) setTab("trip");
-  }, [savedTrip?.savedAt]);
+  const [tab, setTab] = useState<DockTab>(() => (savedTrip ? "trip" : "live"));
 
   const scheduleStationCode = savedTrip ? njStationCodeFromTripKey(savedTrip.fromKey) : null;
 
@@ -79,6 +79,8 @@ export function DockPanel({
           activeLine={props.activeLine}
           followedTrainId={followedTrainId}
           onFollowTrain={onFollowTrain}
+          onEditTrip={onEditTrip}
+          onEndTrip={onEndTrip}
         />
       ) : tab === "live" ? (
         <TrainPanel

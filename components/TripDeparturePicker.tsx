@@ -57,7 +57,7 @@ export function TripDeparturePicker({
   );
 
   const { data, error, isLoading, isValidating } = useSteddy(
-    scheduleKey ?? (["trip-schedule", "idle", "", ""] as const),
+    scheduleKey,
     fetchStationScheduleClient,
     { staleTime: 60_000 },
   );
