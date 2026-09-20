@@ -11,6 +11,8 @@ export type SavedTrip = {
   savedAt: string;
   /** NJ (or first-leg) departure chosen when starting from the schedule list. */
   chosenDeparture?: ScheduleDeparture | null;
+  /** Live train id while onboard; defaults from chosenDeparture when unset. */
+  trackingTrainId?: string | null;
 };
 
 const STORAGE_KEY = "iliketrains.savedTrip.v1";
