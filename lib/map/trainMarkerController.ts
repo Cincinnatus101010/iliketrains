@@ -44,10 +44,10 @@ export class TrainMarkerController {
   private animFrame: number | null = null;
   private activePopup: maplibregl.Popup | null = null;
   private tripHighlightIds = new Set<string>();
-  private followedTrainId: string | null = null;
-  private onFollowTrain: ((trainId: string) => void) | null = null;
-  private onFollowPan: ((lngLat: [number, number]) => void) | null = null;
-  private lastFollowPanLngLat: [number, number] | null = null;
+  private trackingTrainId: string | null = null;
+  private onTrackTrain: ((trainId: string) => void) | null = null;
+  private onTrackingPan: ((lngLat: [number, number]) => void) | null = null;
+  private lastTrackingPanLngLat: [number, number] | null = null;
 
   constructor(map: maplibregl.Map, engine: TrackEngine) {
     this.map = map;
@@ -88,45 +88,45 @@ export class TrainMarkerController {
     }
   }
 
-  setFollowHandlers(
-    followedTrainId: string | null,
-    onFollowTrain: ((trainId: string) => void) | null,
-    onFollowPan: ((lngLat: [number, number]) => void) | null,
+  setTrackingHandlers(
+    trackingTrainId: string | null,
+    onTrackTrain: ((trainId: string) => void) | null,
+    onTrackingPan: ((lngLat: [number, number]) => void) | null,
   ): void {
-    const idChanged = this.followedTrainId !== followedTrainId;
-    this.followedTrainId = followedTrainId;
-    this.onFollowTrain = onFollowTrain;
-    this.onFollowPan = onFollowPan;
-    if (!followedTrainId) this.lastFollowPanLngLat = null;
+    const idChanged = this.trackingTrainId !== trackingTrainId;
+    this.trackingTrainId = trackingTrainId;
+    this.onTrackTrain = onTrackTrain;
+    this.onTrackingPan = onTrackingPan;
+    if (!trackingTrainId) this.lastTrackingPanLngLat = null;
 
     for (const state of this.states.values()) {
       this.refreshMarkerVisual(state);
     }
 
-    if (idChanged && followedTrainId) {
-      this.focusFollowedTrain();
+    if (idChanged && trackingTrainId) {
+      this.focusTrackedTrain();
     }
   }
 
-  focusFollowedTrain(): void {
-    if (!this.followedTrainId || !this.onFollowPan) return;
-    const state = this.states.get(this.followedTrainId);
+  focusTrackedTrain(): void {
+    if (!this.trackingTrainId || !this.onTrackingPan) return;
+    const state = this.states.get(this.trackingTrainId);
     if (!state) return;
     const { lng, lat } = state.marker.getLngLat();
-    this.onFollowPan([lng, lat]);
+    this.onTrackingPan([lng, lat]);
   }
 
-  private emitFollowPan(state: TrackMarkerState): void {
-    if (!this.followedTrainId || state.train.id !== this.followedTrainId || !this.onFollowPan) {
+  private emitTrackingPan(state: TrackMarkerState): void {
+    if (!this.trackingTrainId || state.train.id !== this.trackingTrainId || !this.onTrackingPan) {
       return;
     }
     const { lng, lat } = state.marker.getLngLat();
-    const prev = this.lastFollowPanLngLat;
+    const prev = this.lastTrackingPanLngLat;
     if (prev && Math.abs(prev[0] - lng) < 1e-6 && Math.abs(prev[1] - lat) < 1e-6) {
       return;
     }
-    this.lastFollowPanLngLat = [lng, lat];
-    this.onFollowPan([lng, lat]);
+    this.lastTrackingPanLngLat = [lng, lat];
+    this.onTrackingPan([lng, lat]);
   }
 
   dispose(): void {
@@ -186,10 +186,10 @@ export class TrainMarkerController {
     state.train = train;
     if (!visualUnchanged) this.refreshMarkerVisual(state);
     state.visualKey = visualKey;
-    this.refreshFollowPopup(state);
+    this.refreshTrackingPopup(state);
 
     if (motionUnchanged && target.trackDist != null && state.targetTrackDist === target.trackDist) {
-      this.emitFollowPan(state);
+      this.emitTrackingPan(state);
       return;
     }
     state.motionKey = motionKey;
@@ -199,7 +199,7 @@ export class TrainMarkerController {
       state.targetTrackDist = null;
       state.animDuration = 0;
       state.marker.setLngLat([target.lon, target.lat]);
-      this.emitFollowPan(state);
+      this.emitTrackingPan(state);
       return;
     }
 
@@ -222,7 +222,7 @@ export class TrainMarkerController {
       state.animEndDist = target.trackDist;
       state.animDuration = 0;
       state.marker.setLngLat([target.lon, target.lat]);
-      this.emitFollowPan(state);
+      this.emitTrackingPan(state);
       return;
     }
 
@@ -231,7 +231,7 @@ export class TrainMarkerController {
       state.animEndDist = target.trackDist;
       state.animDuration = 0;
       state.marker.setLngLat([target.lon, target.lat]);
-      this.emitFollowPan(state);
+      this.emitTrackingPan(state);
       return;
     }
 
@@ -287,11 +287,11 @@ export class TrainMarkerController {
     return { marker, contentRoot: shell };
   }
 
-  private refreshFollowPopup(state: TrackMarkerState): void {
-    if (!this.activePopup || this.followedTrainId !== state.train.id) return;
+  private refreshTrackingPopup(state: TrackMarkerState): void {
+    if (!this.activePopup || this.trackingTrainId !== state.train.id) return;
     this.activePopup.setLngLat(state.marker.getLngLat());
     this.activePopup.setHTML(
-      trainPopupHtml(state.train, { following: this.followedTrainId === state.train.id }),
+      trainPopupHtml(state.train, { following: this.trackingTrainId === state.train.id }),
     );
     const followBtn = this.activePopup
       .getElement()
@@ -299,7 +299,7 @@ export class TrainMarkerController {
     followBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      this.onFollowTrain?.(state.train.id);
+      this.onTrackTrain?.(state.train.id);
       this.activePopup?.remove();
     });
   }
@@ -314,14 +314,14 @@ export class TrainMarkerController {
       maxWidth: "240px",
     })
       .setLngLat(marker.getLngLat())
-      .setHTML(trainPopupHtml(train, { following: this.followedTrainId === train.id }))
+      .setHTML(trainPopupHtml(train, { following: this.trackingTrainId === train.id }))
       .addTo(this.map);
 
     const followBtn = popup.getElement()?.querySelector<HTMLButtonElement>("[data-train-follow]");
     followBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      this.onFollowTrain?.(train.id);
+      this.onTrackTrain?.(train.id);
       popup.remove();
     });
 
@@ -337,7 +337,7 @@ export class TrainMarkerController {
     if (!el) return;
 
     const onTrip = this.tripHighlightIds.has(train.id);
-    const followed = this.followedTrainId === train.id;
+    const followed = this.trackingTrainId === train.id;
 
     el.className = [
       "map-train-marker",
@@ -384,7 +384,7 @@ export class TrainMarkerController {
         if (pt) {
           state.marker.setLngLat([pt.lon, pt.lat]);
         }
-        this.emitFollowPan(state);
+        this.emitTrackingPan(state);
       }
 
       if (anyActive) {

@@ -179,7 +179,7 @@ export function NjLiveMap({
       });
     };
 
-    controller.setFollowHandlers(
+    controller.setTrackingHandlers(
       trackingTrainId,
       stableTrackTrain,
       trackingTrainId ? (lngLat) => panToTrain(lngLat) : null,
