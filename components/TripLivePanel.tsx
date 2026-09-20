@@ -114,8 +114,8 @@ export function TripLivePanel({
             <TrainListRow
               train={train}
               highlight
-              following={trackingTrainId === train.id}
-              onFollow={onTrackTrain}
+              tracking={trackingTrainId === train.id}
+              onTrack={onTrackTrain}
             />
           </li>
         ))}

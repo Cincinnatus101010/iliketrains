@@ -75,8 +75,8 @@ export function TrainPanel({
             <TrainListRow
               train={train}
               highlight={highlightTrainIds?.has(train.id)}
-              following={trackingTrainId === train.id}
-              onFollow={onTrackTrain}
+              tracking={trackingTrainId === train.id}
+              onTrack={onTrackTrain}
             />
           </li>
         ))}
