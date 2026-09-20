@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { readSavedTrip, type SavedTrip, writeSavedTrip } from "@/lib/trip/savedTrip";
 import {
   effectiveTrackingTrainId,
@@ -21,12 +21,12 @@ function initialSession(): HomeSession {
   };
 }
 
-function persistTrip(trip: SavedTrip | null) {
-  writeSavedTrip(trip);
-}
-
 export function useHomeSession() {
   const [session, setSession] = useState<HomeSession>(initialSession);
+
+  useEffect(() => {
+    writeSavedTrip(session.trip);
+  }, [session.trip]);
 
   const savedTrip = session.trip;
   const trackingTrainId = effectiveTrackingTrainId(session.trip, session.orphanTrackingId);
@@ -34,12 +34,10 @@ export function useHomeSession() {
 
   const startTrip = useCallback((trip: SavedTrip) => {
     const prepared = prepareTripForStart(trip);
-    persistTrip(prepared);
     setSession({ trip: prepared, orphanTrackingId: null });
   }, []);
 
   const endTrip = useCallback(() => {
-    persistTrip(null);
     setSession({ trip: null, orphanTrackingId: null });
   }, []);
 
@@ -49,7 +47,6 @@ export function useHomeSession() {
       const nextId = activeId === trainId ? null : trainId;
       if (current.trip) {
         const trip = tripWithTracking(current.trip, nextId);
-        persistTrip(trip);
         return { trip, orphanTrackingId: null };
       }
       return { ...current, orphanTrackingId: nextId };
@@ -62,23 +59,19 @@ export function useHomeSession() {
       if (!activeId) return current;
       if (current.trip) {
         const trip = tripWithTracking(current.trip, null);
-        persistTrip(trip);
         return { trip, orphanTrackingId: null };
       }
       return { ...current, orphanTrackingId: null };
     });
   }, []);
 
-  return useMemo(
-    () => ({
-      savedTrip,
-      trackingTrainId,
-      isOnboard,
-      startTrip,
-      endTrip,
-      toggleTrackTrain,
-      stopTracking,
-    }),
-    [savedTrip, trackingTrainId, isOnboard, startTrip, endTrip, toggleTrackTrain, stopTracking],
-  );
+  return {
+    savedTrip,
+    trackingTrainId,
+    isOnboard,
+    startTrip,
+    endTrip,
+    toggleTrackTrain,
+    stopTracking,
+  };
 }
