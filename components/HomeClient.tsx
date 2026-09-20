@@ -4,10 +4,12 @@ import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
+import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
 import type { MapScope } from "@/lib/types";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapContextCard } from "./MapContextCard";
+import { MapPaneOverlays } from "./MapPaneOverlays";
 import { MapTopControls } from "./MapTopControls";
 import { useHomeSession } from "./useHomeSession";
 import { useLiveTrainFeeds } from "./useLiveTrainFeeds";
@@ -23,8 +25,6 @@ const NjLiveMap = dynamic(() => import("./NjLiveMap").then((m) => m.NjLiveMap), 
   ssr: false,
   loading: () => <div className="nj-map nj-map--loading">Loading map…</div>,
 });
-
-const MAP_PADDING = { top: 56, bottom: 24, left: 16, right: 16 } as const;
 
 function lineMatchesScope(line: LineKey | null, scope: MapScope): boolean {
   if (!line) return true;
@@ -135,7 +135,7 @@ export function HomeClient() {
           trains={visibleTrains}
           trainsSignature={mapTrainsSignature}
           highlightLine={activeLine}
-          padding={MAP_PADDING}
+          padding={MAP_VIEW_PADDING}
           plannedRoute={plannedRouteCoords}
           plannedRouteFitKey={plannedRouteFitKey}
           tripHighlightTrainIds={tripHighlightTrainIds}
@@ -146,33 +146,16 @@ export function HomeClient() {
           onStopTracking={stopTracking}
         />
 
-        {trackedTrain && (
-          <MapContextCard trackedTrain={trackedTrain} onStopTracking={stopTracking} />
-        )}
-
-        {!njConfigured && (
-          <div className="map-pane-alert glass" role="status">
-            Set <code>NJTRANSIT_USERNAME</code> / <code>NJTRANSIT_PASSWORD</code> in{" "}
-            <code>.env.local</code>
-          </div>
-        )}
-        {apiErrors.length > 0 && (
-          <div className="map-pane-alert glass map-pane-alert--error" role="alert">
-            {apiErrors[0]}
-          </div>
-        )}
-
-        <button
-          type="button"
-          className="nav-fab"
-          aria-label="Plan a trip"
-          aria-expanded={navOpen}
-          onClick={openNav}
+        <MapPaneOverlays
+          njConfigured={njConfigured}
+          apiError={apiErrors[0] ?? null}
+          navOpen={navOpen}
+          onOpenNav={openNav}
         >
-          <span className="nav-fab-icon" aria-hidden>
-            +
-          </span>
-        </button>
+          {trackedTrain && (
+            <MapContextCard trackedTrain={trackedTrain} onStopTracking={stopTracking} />
+          )}
+        </MapPaneOverlays>
       </section>
 
       <section className="bottom-pane glass" aria-label="Live trains">
