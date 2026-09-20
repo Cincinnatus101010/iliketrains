@@ -4,6 +4,7 @@ import { formatNjDateTime } from "@/lib/formatTime";
 import type { LineKey } from "@/lib/lineKey";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripSummaryLabel } from "@/lib/trip/savedTrip";
+import { trackingTrainIdForTrip } from "@/lib/trip/tracking";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import { ensureRouteStats } from "@/lib/trip/tripStats";
 import type { LiveTrain } from "@/lib/types";
@@ -16,7 +17,6 @@ type TripLivePanelProps = {
   trip: SavedTrip;
   trains: LiveTrain[];
   activeLine: LineKey | null;
-  trackingTrainId: string | null;
   onTrackTrain: (trainId: string) => void;
   onEditTrip: () => void;
   onEndTrip: () => void;
@@ -26,11 +26,11 @@ export function TripLivePanel({
   trip,
   trains,
   activeLine,
-  trackingTrainId,
   onTrackTrain,
   onEditTrip,
   onEndTrip,
 }: TripLivePanelProps) {
+  const trackingTrainId = trackingTrainIdForTrip(trip);
   const route = ensureRouteStats(trip.route);
   const onRoute = trains.filter((t) => trainMatchesTrip(t, trip));
   const sorted = [...onRoute].sort(

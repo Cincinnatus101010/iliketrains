@@ -77,7 +77,6 @@ export function DockPanel({
           trip={savedTrip}
           trains={props.trains}
           activeLine={props.activeLine}
-          trackingTrainId={trackingTrainId}
           onTrackTrain={onTrackTrain}
           onEditTrip={onEditTrip}
           onEndTrip={onEndTrip}
