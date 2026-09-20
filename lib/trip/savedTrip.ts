@@ -1,4 +1,6 @@
 import type { ScheduleDeparture } from "@/lib/types";
+import type { TripTrackingState } from "./trackingState";
+import { parseTripTrackingState, trackingStateFromLegacyId } from "./trackingState";
 import { ensureRouteStats, tripStatsHeadline } from "./tripStats";
 import type { PlannedRoute } from "./types";
 
@@ -11,8 +13,8 @@ export type SavedTrip = {
   savedAt: string;
   /** NJ (or first-leg) departure chosen when starting from the schedule list. */
   chosenDeparture?: ScheduleDeparture | null;
-  /** Live train id while onboard; defaults from chosenDeparture when unset. */
-  trackingTrainId?: string | null;
+  /** How onboard tracking is resolved (auto uses chosen departure when possible). */
+  tracking?: TripTrackingState;
 };
 
 const STORAGE_KEY = "iliketrains.savedTrip.v1";
@@ -49,10 +51,12 @@ export function parseSavedTrip(raw: unknown): SavedTrip | null {
   if (raw.chosenDeparture !== undefined && raw.chosenDeparture !== null) {
     trip.chosenDeparture = raw.chosenDeparture as SavedTrip["chosenDeparture"];
   }
-  if (raw.trackingTrainId !== undefined) {
-    const tid = raw.trackingTrainId;
-    trip.trackingTrainId =
-      tid === null ? null : typeof tid === "string" && tid.trim() ? tid.trim() : null;
+
+  const parsedTracking = parseTripTrackingState(raw.tracking);
+  if (parsedTracking) {
+    trip.tracking = parsedTracking;
+  } else if (raw.trackingTrainId !== undefined) {
+    trip.tracking = trackingStateFromLegacyId(raw.trackingTrainId as string | null);
   }
 
   return trip;

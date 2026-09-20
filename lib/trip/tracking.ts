@@ -1,4 +1,9 @@
 import type { SavedTrip } from "./savedTrip";
+import {
+  parseTripTrackingState,
+  type TripTrackingState,
+  trackingStateFromLegacyId,
+} from "./trackingState";
 
 /** Live map id for the trip's chosen NJ departure, when known. */
 export function liveTrainIdForChosenDeparture(trip: SavedTrip): string | null {
@@ -9,12 +14,22 @@ export function liveTrainIdForChosenDeparture(trip: SavedTrip): string | null {
   return `njt-${raw}`;
 }
 
+function legacyTrackingTrainId(trip: SavedTrip): string | null | undefined {
+  const legacy = (trip as SavedTrip & { trackingTrainId?: string | null }).trackingTrainId;
+  return legacy;
+}
+
+function trackingStateForTrip(trip: SavedTrip): TripTrackingState | undefined {
+  if (trip.tracking !== undefined) return trip.tracking;
+  return trackingStateFromLegacyId(legacyTrackingTrainId(trip));
+}
+
 /** Which train we track (onboard / follow), if any — read only from a saved trip. */
 export function trackingTrainIdForTrip(trip: SavedTrip | null | undefined): string | null {
   if (!trip) return null;
-  if (trip.trackingTrainId === null) return null;
-  const explicit = trip.trackingTrainId?.trim();
-  if (explicit) return explicit;
+  const state = trackingStateForTrip(trip);
+  if (state?.mode === "off") return null;
+  if (state?.mode === "train") return state.trainId;
   return liveTrainIdForChosenDeparture(trip);
 }
 
@@ -28,12 +43,16 @@ export function effectiveTrackingTrainId(
 }
 
 export function tripWithTracking(trip: SavedTrip, trainId: string | null): SavedTrip {
-  return { ...trip, trackingTrainId: trainId };
+  if (trainId === null) return { ...trip, tracking: { mode: "off" } };
+  return { ...trip, tracking: { mode: "train", trainId } };
 }
 
 /** Persist default tracking when starting a trip from the planner. */
 export function prepareTripForStart(trip: SavedTrip): SavedTrip {
-  if (trip.trackingTrainId !== undefined) return trip;
-  const id = liveTrainIdForChosenDeparture(trip);
-  return id ? tripWithTracking(trip, id) : trip;
+  if (trip.tracking !== undefined) return trip;
+  if (legacyTrackingTrainId(trip) !== undefined) return trip;
+  if (liveTrainIdForChosenDeparture(trip)) return { ...trip, tracking: { mode: "auto" } };
+  return trip;
 }
+
+export { parseTripTrackingState, type TripTrackingState };
