@@ -1,13 +1,14 @@
 import type { Key } from "steddy";
+import { EMPTY_TRAINS_RESPONSE, trainIdFromFollowedTrainKey } from "@/lib/liveFeedConfig";
 import type { TrainsResponse } from "./types";
 
 export async function fetchFollowedTrain(
   key: Key,
   { signal }: { signal: AbortSignal },
 ): Promise<TrainsResponse> {
-  const id = typeof key === "string" ? key : String(key[1] ?? "");
+  const id = trainIdFromFollowedTrainKey(key).trim();
   if (!id) {
-    return { trains: [], error: null, configured: true };
+    return EMPTY_TRAINS_RESPONSE;
   }
   const res = await fetch(`/api/train?id=${encodeURIComponent(id)}`, {
     signal,
