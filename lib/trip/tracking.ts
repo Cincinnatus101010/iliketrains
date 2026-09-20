@@ -50,7 +50,6 @@ export function tripWithTracking(trip: SavedTrip, trainId: string | null): Saved
 /** Persist default tracking when starting a trip from the planner. */
 export function prepareTripForStart(trip: SavedTrip): SavedTrip {
   if (trip.tracking !== undefined) return trip;
-  if (legacyTrackingTrainId(trip) !== undefined) return trip;
   if (liveTrainIdForChosenDeparture(trip)) return { ...trip, tracking: { mode: "auto" } };
   return trip;
 }

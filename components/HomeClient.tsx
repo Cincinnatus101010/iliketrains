@@ -1,18 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
-import { type LineKey, lineKey, parseLineKey, trainMatchesLineKey } from "@/lib/lineKey";
+import { useCallback, useState } from "react";
+import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
-import { trainLiveSignature, trainPositionsSignature } from "@/lib/map/trainSyncKey";
-import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import type { MapScope } from "@/lib/types";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapContextCard } from "./MapContextCard";
 import { useHomeSession } from "./useHomeSession";
 import { useLiveTrainFeeds } from "./useLiveTrainFeeds";
+import { useLiveTrainFilters } from "./useLiveTrainFilters";
 import { useMissedPollGrace } from "./useMissedPollGrace";
+import { useTrackedTrain } from "./useTrackedTrain";
 
 const NavigationSheet = dynamic(() => import("./NavigationSheet").then((m) => m.NavigationSheet), {
   ssr: false,
@@ -54,43 +54,36 @@ export function HomeClient() {
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
     useLiveTrainFeeds({ trackingTrainId, isOnboard });
 
-  const handleScopeChange = useCallback((next: MapScope) => {
-    setScope(next);
-    setActiveLine((line) => (lineMatchesScope(line, next) ? line : null));
-  }, []);
+  const {
+    scopedTrains,
+    visibleTrains,
+    mapLiveCount,
+    mapTrainsSignature,
+    tripHighlightTrainIds,
+    tripHighlightKey,
+    plannedRouteCoords,
+    plannedRouteFitKey,
+    lineCounts,
+  } = useLiveTrainFilters({
+    allTrains,
+    scope,
+    activeLine,
+    savedTrip,
+    isOnboard,
+    trackingTrainId,
+  });
 
-  const scopedTrains = useMemo(() => {
-    if (scope === "mta") return allTrains.filter((t) => t.network === "mta");
-    if (scope === "njt") return allTrains.filter((t) => t.network === "njt");
-    return allTrains;
-  }, [allTrains, scope]);
-
-  const visibleTrains = useMemo(() => {
-    if (isOnboard) {
-      return allTrains.filter((t) => trainMatchesLineKey(t, activeLine));
-    }
-    let filtered = scopedTrains.filter((t) => trainMatchesLineKey(t, activeLine));
-    if (savedTrip) {
-      filtered = filtered.filter((t) => trainMatchesTrip(t, savedTrip));
-    }
-    return filtered;
-  }, [isOnboard, allTrains, scopedTrains, activeLine, savedTrip]);
-
-  const mapLiveCount = isOnboard
-    ? visibleTrains.length
-    : savedTrip
-      ? visibleTrains.length
-      : scopedTrains.length;
-
-  const trackedTrain = useMemo(
-    () => (trackingTrainId ? (allTrains.find((t) => t.id === trackingTrainId) ?? null) : null),
-    [allTrains, trackingTrainId],
-  );
+  const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(allTrains, trackingTrainId);
 
   useMissedPollGrace(Boolean(trackingTrainId), Boolean(trackedTrain), {
     maxMisses: TRAIN_MISSED_FEED_POLLS,
     onExpire: stopTracking,
   });
+
+  const handleScopeChange = useCallback((next: MapScope) => {
+    setScope(next);
+    setActiveLine((line) => (lineMatchesScope(line, next) ? line : null));
+  }, []);
 
   const handleTrackTrain = useCallback(
     (trainId: string) => {
@@ -99,40 +92,6 @@ export function HomeClient() {
     },
     [toggleTrackTrain],
   );
-
-  const mapTrainsSignature = useMemo(() => trainPositionsSignature(visibleTrains), [visibleTrains]);
-
-  const tripHighlightTrainIds = useMemo(() => {
-    if (!savedTrip) return new Set<string>();
-    if (trackingTrainId) return new Set([trackingTrainId]);
-    const ids = scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).map((t) => t.id);
-    return new Set(ids);
-  }, [scopedTrains, savedTrip, trackingTrainId]);
-
-  const tripHighlightKey = useMemo(
-    () => [...tripHighlightTrainIds].sort().join("\n"),
-    [tripHighlightTrainIds],
-  );
-
-  const showPlannedRoute = Boolean(savedTrip) && !trackingTrainId;
-  const plannedRouteCoords = showPlannedRoute ? (savedTrip?.route.coordinatesLonLat ?? null) : null;
-  const plannedRouteFitKey =
-    showPlannedRoute && savedTrip
-      ? `${savedTrip.fromKey}:${savedTrip.toKey}:${savedTrip.savedAt}`
-      : null;
-
-  const lineCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const t of scopedTrains) {
-      const key = lineKey(t.network, t.route);
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-    return counts;
-  }, [scopedTrains]);
-
-  const trackedTrainLiveKey = trackedTrain ? trainLiveSignature(trackedTrain) : null;
-
-  const dockSessionKey = savedTrip?.savedAt ?? "no-trip";
 
   const handleStartTrip = useCallback(
     (trip: Parameters<typeof startTrip>[0]) => {
@@ -146,6 +105,8 @@ export function HomeClient() {
   const closeNav = useCallback(() => setNavOpen(false), []);
   const openLines = useCallback(() => setLinesOpen(true), []);
   const closeLines = useCallback(() => setLinesOpen(false), []);
+
+  const dockSessionKey = savedTrip?.savedAt ?? "no-trip";
 
   return (
     <div

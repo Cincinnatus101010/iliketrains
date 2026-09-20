@@ -12,6 +12,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -25,7 +26,7 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "steddy": "file:../steddy"
+    "steddy": "^0.1.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

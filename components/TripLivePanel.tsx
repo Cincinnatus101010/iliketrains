@@ -42,8 +42,8 @@ export function TripLivePanel({
 
   const listTrains = trackingTrainId ? sorted.filter((t) => t.id === trackingTrainId) : sorted;
 
-  const followedTrain = trackingTrainId ? (listTrains[0] ?? null) : null;
-  const upcoming = useFollowUpcomingStops(followedTrain);
+  const trackedTrain = trackingTrainId ? (listTrains[0] ?? null) : null;
+  const upcoming = useFollowUpcomingStops(trackedTrain);
 
   return (
     <div className="train-panel-inner train-panel-inner--bottom">
@@ -90,7 +90,7 @@ export function TripLivePanel({
         </div>
       )}
 
-      {followedTrain && upcoming.length > 0 && (
+      {trackedTrain && upcoming.length > 0 && (
         <div className="trip-follow-stops">
           <FollowStopList stops={upcoming} />
         </div>
