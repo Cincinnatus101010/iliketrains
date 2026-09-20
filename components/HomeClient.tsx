@@ -1,8 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Coordinator } from "steddy";
+import { useCallback, useMemo, useState } from "react";
 import { type LineKey, lineKey, parseLineKey, trainMatchesLineKey } from "@/lib/lineKey";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { trainLiveSignature, trainPositionsSignature } from "@/lib/map/trainSyncKey";
@@ -13,6 +12,7 @@ import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapContextCard } from "./MapContextCard";
 import { useHomeSession } from "./useHomeSession";
 import { useLiveTrainFeeds } from "./useLiveTrainFeeds";
+import { useMissedPollGrace } from "./useMissedPollGrace";
 
 const NavigationSheet = dynamic(() => import("./NavigationSheet").then((m) => m.NavigationSheet), {
   ssr: false,
@@ -25,10 +25,6 @@ const NjLiveMap = dynamic(() => import("./NjLiveMap").then((m) => m.NjLiveMap), 
 
 const MAP_PADDING = { top: 56, bottom: 24, left: 16, right: 16 } as const;
 
-type HomeClientProps = {
-  coordinator: Coordinator;
-};
-
 function lineMatchesScope(line: LineKey | null, scope: MapScope): boolean {
   if (!line) return true;
   const parsed = parseLineKey(line);
@@ -38,7 +34,7 @@ function lineMatchesScope(line: LineKey | null, scope: MapScope): boolean {
   return true;
 }
 
-export function HomeClient({ coordinator }: HomeClientProps) {
+export function HomeClient() {
   const [scope, setScope] = useState<MapScope>("all");
   const [activeLine, setActiveLine] = useState<LineKey | null>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -56,9 +52,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
   } = useHomeSession();
 
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
-    useLiveTrainFeeds({ coordinator, trackingTrainId, isOnboard });
-
-  const followMissedPolls = useRef(0);
+    useLiveTrainFeeds({ trackingTrainId, isOnboard });
 
   const handleScopeChange = useCallback((next: MapScope) => {
     setScope(next);
@@ -93,21 +87,10 @@ export function HomeClient({ coordinator }: HomeClientProps) {
     [allTrains, trackingTrainId],
   );
 
-  useEffect(() => {
-    if (!trackingTrainId) {
-      followMissedPolls.current = 0;
-      return;
-    }
-    if (trackedTrain) {
-      followMissedPolls.current = 0;
-      return;
-    }
-    followMissedPolls.current += 1;
-    if (followMissedPolls.current >= TRAIN_MISSED_FEED_POLLS) {
-      followMissedPolls.current = 0;
-      stopTracking();
-    }
-  }, [trackingTrainId, trackedTrain, stopTracking]);
+  useMissedPollGrace(Boolean(trackingTrainId), Boolean(trackedTrain), {
+    maxMisses: TRAIN_MISSED_FEED_POLLS,
+    onExpire: stopTracking,
+  });
 
   const handleTrackTrain = useCallback(
     (trainId: string) => {

@@ -11,7 +11,7 @@ export function SteddyRoot() {
 
   return (
     <SteddyProvider store={runtime.store} coordinator={runtime.coordinator}>
-      <HomeClient coordinator={runtime.coordinator} />
+      <HomeClient />
     </SteddyProvider>
   );
 }

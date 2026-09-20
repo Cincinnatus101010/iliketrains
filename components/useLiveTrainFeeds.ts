@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { type Coordinator, serializeKey, useSteddy } from "steddy";
+import { serializeKey, useSteddy, useSteddyRuntime } from "steddy";
 import { collectFetchErrors } from "@/lib/collectFetchErrors";
 import { fetchFollowedTrain } from "@/lib/fetchFollowedTrain";
 import { fetchNjTrains } from "@/lib/fetchNjTrains";
@@ -16,16 +16,12 @@ const SUBWAY_POLL_MS = 5_000;
 const FOLLOW_POLL_MS = 5_000;
 
 type UseLiveTrainFeedsOptions = {
-  coordinator: Coordinator;
   trackingTrainId: string | null;
   isOnboard: boolean;
 };
 
-export function useLiveTrainFeeds({
-  coordinator,
-  trackingTrainId,
-  isOnboard,
-}: UseLiveTrainFeedsOptions) {
+export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFeedsOptions) {
+  const { coordinator } = useSteddyRuntime();
   const followKey = trackingTrainId ? (["followed-train", trackingTrainId] as const) : null;
 
   const {
