@@ -91,8 +91,8 @@ export function trainMarkerBadge(train: LiveTrain): string {
 }
 
 /** Native tooltip on map markers. */
-export function trainMarkerTitle(train: LiveTrain, opts?: { following?: boolean }): string {
-  const location = opts?.following ? trainFollowPrimary(train) : trainHeadline(train);
+export function trainMarkerTitle(train: LiveTrain, opts?: { tracking?: boolean }): string {
+  const location = opts?.tracking ? trainFollowPrimary(train) : trainHeadline(train);
   return [
     displayLineName(train),
     location,
@@ -103,15 +103,15 @@ export function trainMarkerTitle(train: LiveTrain, opts?: { following?: boolean 
     .join(" · ");
 }
 
-export function trainPopupHtml(train: LiveTrain, opts?: { following?: boolean }): string {
+export function trainPopupHtml(train: LiveTrain, opts?: { tracking?: boolean }): string {
   const line = displayLineName(train);
   const network = train.network === "mta" ? "NY Subway" : "NJ Transit";
-  const headline = escapeHtml(opts?.following ? trainFollowPrimary(train) : trainHeadline(train));
+  const headline = escapeHtml(opts?.tracking ? trainFollowPrimary(train) : trainHeadline(train));
   const meta = escapeHtml(
-    opts?.following ? trainFollowSecondary(train) : trainMeta(train, { includeDeparture: false }),
+    opts?.tracking ? trainFollowSecondary(train) : trainMeta(train, { includeDeparture: false }),
   );
   const time = escapeHtml(trainTimeLabel(train));
-  const followLabel = opts?.following ? "Following" : "Follow train";
+  const followLabel = opts?.tracking ? "Following" : "Follow train";
 
   return `<div class="map-train-popup">
   <p class="map-train-popup-kicker">${escapeHtml(line)} · ${network}</p>

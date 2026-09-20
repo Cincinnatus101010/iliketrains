@@ -291,7 +291,7 @@ export class TrainMarkerController {
     if (!this.activePopup || this.trackingTrainId !== state.train.id) return;
     this.activePopup.setLngLat(state.marker.getLngLat());
     this.activePopup.setHTML(
-      trainPopupHtml(state.train, { following: this.trackingTrainId === state.train.id }),
+      trainPopupHtml(state.train, { tracking: this.trackingTrainId === state.train.id }),
     );
     const followBtn = this.activePopup
       .getElement()
@@ -314,7 +314,7 @@ export class TrainMarkerController {
       maxWidth: "240px",
     })
       .setLngLat(marker.getLngLat())
-      .setHTML(trainPopupHtml(train, { following: this.trackingTrainId === train.id }))
+      .setHTML(trainPopupHtml(train, { tracking: this.trackingTrainId === train.id }))
       .addTo(this.map);
 
     const followBtn = popup.getElement()?.querySelector<HTMLButtonElement>("[data-train-follow]");
@@ -350,7 +350,7 @@ export class TrainMarkerController {
       .join(" ");
     el.style.background = train.color;
     el.textContent = trainMarkerBadge(train);
-    el.title = trainMarkerTitle(train, { following: followed });
+    el.title = trainMarkerTitle(train, { tracking: followed });
   }
 
   private ensureAnimationLoop(): void {
