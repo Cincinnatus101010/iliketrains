@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LineKey } from "@/lib/lineKey";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { njStationCodeFromTripKey } from "@/lib/trip/tripLines";
@@ -38,6 +38,10 @@ export function DockPanel({
   const [tab, setTab] = useState<DockTab>(() => (savedTrip ? "trip" : "live"));
 
   const scheduleStationCode = savedTrip ? njStationCodeFromTripKey(savedTrip.fromKey) : null;
+
+  useEffect(() => {
+    setTab(savedTrip ? "trip" : "live");
+  }, [savedTrip]);
 
   return (
     <div className="dock-panel">
