@@ -8,7 +8,7 @@ import {
   tripWithTracking,
 } from "@/lib/trip/tracking";
 
-/** React state: trip is persisted; orphan id is follow-without-trip only. */
+/** React session: persisted trip plus ephemeral map follow when no trip is saved. */
 export type HomeSession = {
   trip: SavedTrip | null;
   orphanTrackingId: string | null;
