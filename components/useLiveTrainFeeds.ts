@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { serializeKey, useSteddy, useSteddyRuntime } from "steddy";
+import { type MutateFn, useSteddy } from "steddy";
 import { collectFetchErrors } from "@/lib/collectFetchErrors";
 import { fetchFollowedTrain } from "@/lib/fetchFollowedTrain";
 import { fetchNjTrains } from "@/lib/fetchNjTrains";
 import { fetchSubwayTrains } from "@/lib/fetchSubwayTrains";
 import { pickLatestUpdatedAt } from "@/lib/pickLatestUpdatedAt";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain, TrainsResponse } from "@/lib/types";
 
 const NJ_KEY = ["nj-trains"] as const;
 const SUBWAY_KEY = ["subway-trains"] as const;
@@ -20,8 +20,13 @@ type UseLiveTrainFeedsOptions = {
   isOnboard: boolean;
 };
 
+function forceRevalidate<T>(mutate: MutateFn<T>, fallback: T) {
+  void mutate((current) => current ?? fallback, { revalidate: true });
+}
+
+const EMPTY_TRAINS: TrainsResponse = { trains: [], error: null, configured: true };
+
 export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFeedsOptions) {
-  const { coordinator } = useSteddyRuntime();
   const followKey = trackingTrainId ? (["followed-train", trackingTrainId] as const) : null;
 
   const {
@@ -29,6 +34,7 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     error: njError,
     isLoading: njLoading,
     isValidating: njValidating,
+    mutate: mutateNj,
   } = useSteddy(isOnboard ? null : NJ_KEY, fetchNjTrains, {
     staleTime: NJ_POLL_MS,
     refetchInterval: NJ_POLL_MS,
@@ -39,6 +45,7 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     error: subwayError,
     isLoading: subwayLoading,
     isValidating: subwayValidating,
+    mutate: mutateSubway,
   } = useSteddy(isOnboard ? null : SUBWAY_KEY, fetchSubwayTrains, {
     staleTime: SUBWAY_POLL_MS,
     refetchInterval: SUBWAY_POLL_MS,
@@ -49,6 +56,7 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     error: followError,
     isLoading: followLoading,
     isValidating: followValidating,
+    mutate: mutateFollow,
   } = useSteddy(followKey, fetchFollowedTrain, {
     staleTime: FOLLOW_POLL_MS,
     refetchInterval: FOLLOW_POLL_MS,
@@ -56,16 +64,12 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
 
   const refresh = useCallback(() => {
     if (trackingTrainId) {
-      void coordinator.revalidate(
-        serializeKey(["followed-train", trackingTrainId]),
-        fetchFollowedTrain,
-        { force: true },
-      );
+      forceRevalidate(mutateFollow, EMPTY_TRAINS);
       return;
     }
-    void coordinator.revalidate(serializeKey(NJ_KEY), fetchNjTrains, { force: true });
-    void coordinator.revalidate(serializeKey(SUBWAY_KEY), fetchSubwayTrains, { force: true });
-  }, [coordinator, trackingTrainId]);
+    forceRevalidate(mutateNj, EMPTY_TRAINS);
+    forceRevalidate(mutateSubway, EMPTY_TRAINS);
+  }, [trackingTrainId, mutateFollow, mutateNj, mutateSubway]);
 
   const allTrains = useMemo((): LiveTrain[] => {
     if (isOnboard) return followData?.trains ?? [];
