@@ -1,4 +1,5 @@
 import maplibregl from "maplibre-gl";
+import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { trainMarkerBadge, trainMarkerTitle, trainPopupHtml } from "@/lib/trainDisplay";
 import type { LiveTrain, Network } from "@/lib/types";
 import { shortestTrackGap, type TrackEngine, wrapTrackDist } from "./trackEngine";
@@ -6,7 +7,7 @@ import { trainVisualKey } from "./trainSyncKey";
 
 const GLIDE_MIN_GAP_M = 25;
 const MAX_GLIDE_M = 3200;
-const REMOVE_AFTER_MISSED_POLLS = 3;
+const REMOVE_AFTER_MISSED_POLLS = TRAIN_MISSED_FEED_POLLS;
 
 type TrackTarget = { lat: number; lon: number; trackDist: number | null };
 
