@@ -1,4 +1,4 @@
-import type { LiveTrain, Network } from "@/lib/types";
+import type { LiveTrain, MapScope, Network } from "@/lib/types";
 
 export type LineKey = `${Network}:${string}`;
 
@@ -13,6 +13,16 @@ export function parseLineKey(key: string | null): { network: Network; route: str
   const network = key.slice(0, i) as Network;
   if (network !== "mta" && network !== "njt") return null;
   return { network, route: key.slice(i + 1) };
+}
+
+/** Whether the selected line filter still applies after changing map scope. */
+export function activeLineMatchesScope(line: LineKey | null, scope: MapScope): boolean {
+  if (!line) return true;
+  const parsed = parseLineKey(line);
+  if (!parsed) return true;
+  if (scope === "mta") return parsed.network === "mta";
+  if (scope === "njt") return parsed.network === "njt";
+  return true;
 }
 
 export function trainMatchesLineKey(train: LiveTrain, key: string | null): boolean {

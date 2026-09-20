@@ -1,17 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useState } from "react";
-import { type LineKey, parseLineKey } from "@/lib/lineKey";
+import { useCallback } from "react";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
-import type { MapScope } from "@/lib/types";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapContextCard } from "./MapContextCard";
 import { MapPaneOverlays } from "./MapPaneOverlays";
 import { MapTopControls } from "./MapTopControls";
 import { useHomeSession } from "./useHomeSession";
+import { useHomeUiState } from "./useHomeUiState";
 import { useLiveTrainFeeds } from "./useLiveTrainFeeds";
 import { useLiveTrainFilters } from "./useLiveTrainFilters";
 import { useMissedPollGrace } from "./useMissedPollGrace";
@@ -26,21 +25,21 @@ const NjLiveMap = dynamic(() => import("./NjLiveMap").then((m) => m.NjLiveMap), 
   loading: () => <div className="nj-map nj-map--loading">Loading map…</div>,
 });
 
-function lineMatchesScope(line: LineKey | null, scope: MapScope): boolean {
-  if (!line) return true;
-  const parsed = parseLineKey(line);
-  if (!parsed) return true;
-  if (scope === "mta") return parsed.network === "mta";
-  if (scope === "njt") return parsed.network === "njt";
-  return true;
-}
-
 export function HomeClient() {
-  const [scope, setScope] = useState<MapScope>("all");
-  const [activeLine, setActiveLine] = useState<LineKey | null>(null);
-  const [navOpen, setNavOpen] = useState(false);
-  const [bottomCollapsed, setBottomCollapsed] = useState(true);
-  const [linesOpen, setLinesOpen] = useState(false);
+  const {
+    scope,
+    activeLine,
+    setActiveLine,
+    onScopeChange: handleScopeChange,
+    navOpen,
+    openNav,
+    closeNav,
+    linesOpen,
+    openLines,
+    closeLines,
+    bottomCollapsed,
+    setBottomCollapsed,
+  } = useHomeUiState();
 
   const {
     savedTrip,
@@ -81,17 +80,12 @@ export function HomeClient() {
     onExpire: stopTracking,
   });
 
-  const handleScopeChange = useCallback((next: MapScope) => {
-    setScope(next);
-    setActiveLine((line) => (lineMatchesScope(line, next) ? line : null));
-  }, []);
-
   const handleTrackTrain = useCallback(
     (trainId: string) => {
       toggleTrackTrain(trainId);
       setBottomCollapsed(false);
     },
-    [toggleTrackTrain],
+    [toggleTrackTrain, setBottomCollapsed],
   );
 
   const handleStartTrip = useCallback(
@@ -99,13 +93,8 @@ export function HomeClient() {
       startTrip(trip);
       setBottomCollapsed(false);
     },
-    [startTrip],
+    [startTrip, setBottomCollapsed],
   );
-
-  const openNav = useCallback(() => setNavOpen(true), []);
-  const closeNav = useCallback(() => setNavOpen(false), []);
-  const openLines = useCallback(() => setLinesOpen(true), []);
-  const closeLines = useCallback(() => setLinesOpen(false), []);
 
   const dockSessionKey = savedTrip?.savedAt ?? "no-trip";
 
