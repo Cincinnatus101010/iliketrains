@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback } from "react";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
+import { mapTopCountLabel } from "@/lib/mapTopCountLabel";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapContextCard } from "./MapContextCard";
@@ -45,7 +46,7 @@ export function HomeClient() {
   const {
     savedTrip,
     trackingTrainId,
-    isOnboard,
+    isTracking,
     startTrip,
     endTrip,
     toggleTrackTrain,
@@ -53,7 +54,7 @@ export function HomeClient() {
   } = useHomeSession();
 
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
-    useLiveTrainFeeds({ trackingTrainId, isOnboard });
+    useLiveTrainFeeds({ trackingTrainId, isTracking });
 
   const {
     scopedTrains,
@@ -70,7 +71,7 @@ export function HomeClient() {
     scope,
     activeLine,
     savedTrip,
-    isOnboard,
+    isTracking,
     trackingTrainId,
   });
 
@@ -97,11 +98,7 @@ export function HomeClient() {
     [startTrip, expandDock],
   );
 
-  const countLabel = isOnboard
-    ? "On train"
-    : savedTrip
-      ? `${mapLiveCount} on route`
-      : `${mapLiveCount} live`;
+  const countLabel = mapTopCountLabel(mapLiveCount, { isTracking, savedTrip });
 
   return (
     <div
@@ -149,7 +146,7 @@ export function HomeClient() {
       <section className="bottom-pane glass" aria-label="Live trains">
         {!bottomCollapsed && (
           <DockPanel
-            trains={isOnboard ? allTrains : scopedTrains}
+            trains={isTracking ? allTrains : scopedTrains}
             loading={loading}
             validating={validating}
             updatedAt={updatedAt}

@@ -19,13 +19,13 @@ export function trackingTrainIdForTrip(trip: SavedTrip | null | undefined): stri
   return liveTrainIdForChosenDeparture(trip);
 }
 
-/** Active tracking id: from the saved trip, or ephemeral follow when there is no trip. */
+/** Active tracking id: from the saved trip, or map-only follow when there is no trip. */
 export function effectiveTrackingTrainId(
   trip: SavedTrip | null | undefined,
-  orphanTrackingId: string | null,
+  ephemeralTrackingId: string | null,
 ): string | null {
   if (trip) return trackingTrainIdForTrip(trip);
-  return orphanTrackingId;
+  return ephemeralTrackingId;
 }
 
 export function tripWithTracking(trip: SavedTrip, trainId: string | null): SavedTrip {

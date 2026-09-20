@@ -20,14 +20,14 @@ import type { LiveTrain } from "@/lib/types";
 
 type UseLiveTrainFeedsOptions = {
   trackingTrainId: string | null;
-  isOnboard: boolean;
+  isTracking: boolean;
 };
 
 function forceRevalidate<T>(mutate: MutateFn<T>, fallback: T) {
   void mutate((current) => current ?? fallback, { revalidate: true });
 }
 
-export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFeedsOptions) {
+export function useLiveTrainFeeds({ trackingTrainId, isTracking }: UseLiveTrainFeedsOptions) {
   const followKey = trackingTrainId ? followedTrainKey(trackingTrainId) : null;
 
   const {
@@ -36,7 +36,7 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     isLoading: njLoading,
     isValidating: njValidating,
     mutate: mutateNj,
-  } = useSteddy(isOnboard ? null : NJ_TRAINS_KEY, fetchNjTrains, {
+  } = useSteddy(isTracking ? null : NJ_TRAINS_KEY, fetchNjTrains, {
     staleTime: NJ_TRAINS_POLL_MS,
     refetchInterval: NJ_TRAINS_POLL_MS,
   });
@@ -47,7 +47,7 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     isLoading: subwayLoading,
     isValidating: subwayValidating,
     mutate: mutateSubway,
-  } = useSteddy(isOnboard ? null : SUBWAY_TRAINS_KEY, fetchSubwayTrains, {
+  } = useSteddy(isTracking ? null : SUBWAY_TRAINS_KEY, fetchSubwayTrains, {
     staleTime: SUBWAY_TRAINS_POLL_MS,
     refetchInterval: SUBWAY_TRAINS_POLL_MS,
   });
@@ -73,19 +73,19 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
   }, [trackingTrainId, mutateFollow, mutateNj, mutateSubway]);
 
   const allTrains = useMemo((): LiveTrain[] => {
-    if (isOnboard) return followData?.trains ?? [];
+    if (isTracking) return followData?.trains ?? [];
     const nj = njData?.trains ?? [];
     const subway = subwayData?.trains ?? [];
     return [...subway, ...nj];
-  }, [isOnboard, followData?.trains, njData?.trains, subwayData?.trains]);
+  }, [isTracking, followData?.trains, njData?.trains, subwayData?.trains]);
 
   const apiErrors = useMemo(
     () =>
-      isOnboard
+      isTracking
         ? collectFetchErrors(followData?.error, followError)
         : collectFetchErrors(njData?.error, subwayData?.error, njError, subwayError),
     [
-      isOnboard,
+      isTracking,
       followData?.error,
       followError,
       njData?.error,
@@ -95,10 +95,10 @@ export function useLiveTrainFeeds({ trackingTrainId, isOnboard }: UseLiveTrainFe
     ],
   );
 
-  const njConfigured = isOnboard ? (followData?.configured ?? true) : (njData?.configured ?? true);
-  const loading = isOnboard ? followLoading : njLoading || subwayLoading;
-  const validating = isOnboard ? followValidating : njValidating || subwayValidating;
-  const updatedAt = isOnboard
+  const njConfigured = isTracking ? (followData?.configured ?? true) : (njData?.configured ?? true);
+  const loading = isTracking ? followLoading : njLoading || subwayLoading;
+  const validating = isTracking ? followValidating : njValidating || subwayValidating;
+  const updatedAt = isTracking
     ? followData?.updatedAt
     : pickLatestUpdatedAt(njData?.updatedAt, subwayData?.updatedAt);
 

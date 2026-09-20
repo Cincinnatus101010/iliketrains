@@ -12,7 +12,7 @@ type UseLiveTrainFiltersOptions = {
   scope: MapScope;
   activeLine: LineKey | null;
   savedTrip: SavedTrip | null;
-  isOnboard: boolean;
+  isTracking: boolean;
   trackingTrainId: string | null;
 };
 
@@ -21,7 +21,7 @@ export function useLiveTrainFilters({
   scope,
   activeLine,
   savedTrip,
-  isOnboard,
+  isTracking,
   trackingTrainId,
 }: UseLiveTrainFiltersOptions) {
   const scopedTrains = useMemo(() => {
@@ -31,7 +31,7 @@ export function useLiveTrainFilters({
   }, [allTrains, scope]);
 
   const visibleTrains = useMemo(() => {
-    if (isOnboard) {
+    if (isTracking) {
       return allTrains.filter((t) => trainMatchesLineKey(t, activeLine));
     }
     let filtered = scopedTrains.filter((t) => trainMatchesLineKey(t, activeLine));
@@ -39,9 +39,9 @@ export function useLiveTrainFilters({
       filtered = filtered.filter((t) => trainMatchesTrip(t, savedTrip));
     }
     return filtered;
-  }, [isOnboard, allTrains, scopedTrains, activeLine, savedTrip]);
+  }, [isTracking, allTrains, scopedTrains, activeLine, savedTrip]);
 
-  const mapLiveCount = isOnboard
+  const mapLiveCount = isTracking
     ? visibleTrains.length
     : savedTrip
       ? visibleTrains.length

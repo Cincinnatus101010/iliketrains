@@ -8,19 +8,24 @@ import {
   tripWithTracking,
 } from "@/lib/trip/tracking";
 
-/** React session: persisted trip plus ephemeral map follow when no trip is saved. */
+/** In-memory home screen session (trip persistence + map-only train tracking). */
 export type HomeSession = {
   trip: SavedTrip | null;
-  orphanTrackingId: string | null;
+  /** Follow id when there is no saved trip; cleared when a trip starts. */
+  ephemeralTrackingId: string | null;
 };
 
 function initialSession(): HomeSession {
   return {
     trip: readSavedTrip(),
-    orphanTrackingId: null,
+    ephemeralTrackingId: null,
   };
 }
 
+/**
+ * Trip lifecycle and which train the map tracks.
+ * `trackingTrainId` comes from the saved trip when present, otherwise `ephemeralTrackingId`.
+ */
 export function useHomeSession() {
   const [session, setSession] = useState<HomeSession>(initialSession);
 
@@ -29,46 +34,47 @@ export function useHomeSession() {
   }, [session.trip]);
 
   const savedTrip = session.trip;
-  const trackingTrainId = effectiveTrackingTrainId(session.trip, session.orphanTrackingId);
-  const isOnboard = trackingTrainId != null;
+  const trackingTrainId = effectiveTrackingTrainId(session.trip, session.ephemeralTrackingId);
+  /** Single-train feed + follow camera when any train is tracked. */
+  const isTracking = trackingTrainId != null;
 
   const startTrip = useCallback((trip: SavedTrip) => {
     const prepared = prepareTripForStart(trip);
-    setSession({ trip: prepared, orphanTrackingId: null });
+    setSession({ trip: prepared, ephemeralTrackingId: null });
   }, []);
 
   const endTrip = useCallback(() => {
-    setSession({ trip: null, orphanTrackingId: null });
+    setSession({ trip: null, ephemeralTrackingId: null });
   }, []);
 
   const toggleTrackTrain = useCallback((trainId: string) => {
     setSession((current) => {
-      const activeId = effectiveTrackingTrainId(current.trip, current.orphanTrackingId);
+      const activeId = effectiveTrackingTrainId(current.trip, current.ephemeralTrackingId);
       const nextId = activeId === trainId ? null : trainId;
       if (current.trip) {
         const trip = tripWithTracking(current.trip, nextId);
-        return { trip, orphanTrackingId: null };
+        return { trip, ephemeralTrackingId: null };
       }
-      return { ...current, orphanTrackingId: nextId };
+      return { ...current, ephemeralTrackingId: nextId };
     });
   }, []);
 
   const stopTracking = useCallback(() => {
     setSession((current) => {
-      const activeId = effectiveTrackingTrainId(current.trip, current.orphanTrackingId);
+      const activeId = effectiveTrackingTrainId(current.trip, current.ephemeralTrackingId);
       if (!activeId) return current;
       if (current.trip) {
         const trip = tripWithTracking(current.trip, null);
-        return { trip, orphanTrackingId: null };
+        return { trip, ephemeralTrackingId: null };
       }
-      return { ...current, orphanTrackingId: null };
+      return { ...current, ephemeralTrackingId: null };
     });
   }, []);
 
   return {
     savedTrip,
     trackingTrainId,
-    isOnboard,
+    isTracking,
     startTrip,
     endTrip,
     toggleTrackTrain,
