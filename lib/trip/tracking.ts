@@ -1,5 +1,5 @@
 import type { SavedTrip } from "./savedTrip";
-import { parseTripTrackingState, type TripTrackingState } from "./trackingState";
+import type { TripTrackingState } from "./trackingState";
 
 /** Live map id for the trip's chosen NJ departure, when known. */
 export function liveTrainIdForChosenDeparture(trip: SavedTrip): string | null {
@@ -10,14 +10,10 @@ export function liveTrainIdForChosenDeparture(trip: SavedTrip): string | null {
   return `njt-${raw}`;
 }
 
-function trackingStateForTrip(trip: SavedTrip): TripTrackingState | undefined {
-  return trip.tracking;
-}
-
 /** Which train we track (onboard / follow), if any — read only from a saved trip. */
 export function trackingTrainIdForTrip(trip: SavedTrip | null | undefined): string | null {
   if (!trip) return null;
-  const state = trackingStateForTrip(trip);
+  const state: TripTrackingState | undefined = trip.tracking;
   if (state?.mode === "off") return null;
   if (state?.mode === "train") return state.trainId;
   return liveTrainIdForChosenDeparture(trip);
@@ -34,6 +30,10 @@ export function effectiveTrackingTrainId(
 
 export function tripWithTracking(trip: SavedTrip, trainId: string | null): SavedTrip {
   if (trainId === null) return { ...trip, tracking: { mode: "off" } };
+  const departureId = liveTrainIdForChosenDeparture(trip);
+  if (departureId && departureId === trainId) {
+    return { ...trip, tracking: { mode: "auto" } };
+  }
   return { ...trip, tracking: { mode: "train", trainId } };
 }
 
@@ -43,5 +43,3 @@ export function prepareTripForStart(trip: SavedTrip): SavedTrip {
   if (liveTrainIdForChosenDeparture(trip)) return { ...trip, tracking: { mode: "auto" } };
   return trip;
 }
-
-export { parseTripTrackingState, type TripTrackingState };

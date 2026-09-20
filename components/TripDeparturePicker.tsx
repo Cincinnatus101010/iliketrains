@@ -9,6 +9,7 @@ import { lineName } from "@/lib/nj/lines";
 import { filterDeparturesForFirstLeg } from "@/lib/trip/filterDepartures";
 import { firstRideStep } from "@/lib/trip/firstRideStep";
 import { resolveNjStationCodeForTrip } from "@/lib/trip/resolveNjStation";
+import { tripScheduleKey } from "@/lib/trip/tripScheduleKey";
 import type { PlannedRoute } from "@/lib/trip/types";
 import type { NjStation, ScheduleDeparture } from "@/lib/types";
 
@@ -51,8 +52,7 @@ export function TripDeparturePicker({
   const lineCode = firstLeg?.route ?? "";
 
   const scheduleKey = useMemo(
-    () =>
-      stationCode && lineCode ? (["trip-schedule", stationCode, lineCode, fromKey] as const) : null,
+    () => (stationCode && lineCode ? tripScheduleKey(stationCode, lineCode, fromKey) : null),
     [stationCode, lineCode, fromKey],
   );
 
