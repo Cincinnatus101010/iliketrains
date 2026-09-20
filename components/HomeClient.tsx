@@ -39,6 +39,7 @@ export function HomeClient() {
     closeLines,
     bottomCollapsed,
     setBottomCollapsed,
+    expandDock,
   } = useHomeUiState();
 
   const {
@@ -83,20 +84,18 @@ export function HomeClient() {
   const handleTrackTrain = useCallback(
     (trainId: string) => {
       toggleTrackTrain(trainId);
-      setBottomCollapsed(false);
+      expandDock();
     },
-    [toggleTrackTrain, setBottomCollapsed],
+    [toggleTrackTrain, expandDock],
   );
 
   const handleStartTrip = useCallback(
     (trip: Parameters<typeof startTrip>[0]) => {
       startTrip(trip);
-      setBottomCollapsed(false);
+      expandDock();
     },
-    [startTrip, setBottomCollapsed],
+    [startTrip, expandDock],
   );
-
-  const dockSessionKey = savedTrip?.savedAt ?? "no-trip";
 
   const countLabel = isOnboard
     ? "On train"
@@ -150,7 +149,6 @@ export function HomeClient() {
       <section className="bottom-pane glass" aria-label="Live trains">
         {!bottomCollapsed && (
           <DockPanel
-            key={dockSessionKey}
             trains={isOnboard ? allTrains : scopedTrains}
             loading={loading}
             validating={validating}

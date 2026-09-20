@@ -20,6 +20,7 @@ export function useHomeUiState() {
   const closeNav = useCallback(() => setNavOpen(false), []);
   const openLines = useCallback(() => setLinesOpen(true), []);
   const closeLines = useCallback(() => setLinesOpen(false), []);
+  const expandDock = useCallback(() => setBottomCollapsed(false), []);
 
   return {
     scope,
@@ -34,5 +35,6 @@ export function useHomeUiState() {
     closeLines,
     bottomCollapsed,
     setBottomCollapsed,
+    expandDock,
   };
 }
