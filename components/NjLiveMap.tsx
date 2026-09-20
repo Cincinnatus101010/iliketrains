@@ -8,6 +8,7 @@ import { observeMapContainerResize } from "@/lib/map/mapResize";
 import { TrackEngine } from "@/lib/map/trackEngine";
 import { TrainMarkerController } from "@/lib/map/trainMarkerController";
 import type { LiveTrain } from "@/lib/types";
+import { useStableEvent } from "@/lib/useStableEvent";
 
 const CENTER: [number, number] = [-74.02, 40.72];
 const ZOOM = 9.1;
@@ -51,16 +52,17 @@ export function NjLiveMap({
   const lastRouteFitKeyRef = useRef<string | null>(null);
   const trainsRef = useRef(trains);
   trainsRef.current = trains;
-  const onTrackTrainRef = useRef(onTrackTrain);
-  onTrackTrainRef.current = onTrackTrain;
-  const onStopTrackingRef = useRef(onStopTracking);
-  onStopTrackingRef.current = onStopTracking;
-  const trackingTrainIdRef = useRef(trackingTrainId);
-  trackingTrainIdRef.current = trackingTrainId;
-  const tripHighlightTrainIdsRef = useRef(tripHighlightTrainIds);
-  tripHighlightTrainIdsRef.current = tripHighlightTrainIds;
-  const paddingRef = useRef(padding);
-  paddingRef.current = padding;
+
+  const stableTrackTrain = useStableEvent(onTrackTrain);
+  const stableStopTracking = useStableEvent(onStopTracking);
+
+  const mapLiveRef = useRef({
+    trackingTrainId,
+    tripHighlightTrainIds,
+    padding,
+  });
+  mapLiveRef.current = { trackingTrainId, tripHighlightTrainIds, padding };
+
   const followPanFromMapRef = useRef(false);
   const prevFollowIdRef = useRef<string | null>(null);
 
@@ -96,7 +98,7 @@ export function NjLiveMap({
       markersRef.current = controller;
 
       const onUserPan = () => {
-        if (trackingTrainIdRef.current) onStopTrackingRef.current();
+        if (mapLiveRef.current.trackingTrainId) stableStopTracking();
       };
       map.on("dragstart", onUserPan);
       map.on("rotatestart", onUserPan);
@@ -166,7 +168,7 @@ export function NjLiveMap({
     map.setPadding(padding);
     applyLineHighlight(map, highlightLine);
     controller.sync(trains);
-    controller.setTripHighlightTrainIds(tripHighlightTrainIdsRef.current);
+    controller.setTripHighlightTrainIds(mapLiveRef.current.tripHighlightTrainIds);
 
     const panToTrain = (lngLat: [number, number]) => {
       followPanFromMapRef.current = true;
@@ -179,7 +181,7 @@ export function NjLiveMap({
 
     controller.setFollowHandlers(
       trackingTrainId,
-      onTrackTrain,
+      stableTrackTrain,
       trackingTrainId ? (lngLat) => panToTrain(lngLat) : null,
     );
 
@@ -240,7 +242,7 @@ export function NjLiveMap({
     tripHighlightKey,
     trackingTrainId,
     trackingTrainLiveKey,
-    onTrackTrain,
+    stableTrackTrain,
     plannedRoute,
     plannedRouteFitKey,
   ]);
