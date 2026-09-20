@@ -8,6 +8,7 @@ import type { MapScope } from "@/lib/types";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapContextCard } from "./MapContextCard";
+import { MapTopControls } from "./MapTopControls";
 import { useHomeSession } from "./useHomeSession";
 import { useLiveTrainFeeds } from "./useLiveTrainFeeds";
 import { useLiveTrainFilters } from "./useLiveTrainFilters";
@@ -108,53 +109,26 @@ export function HomeClient() {
 
   const dockSessionKey = savedTrip?.savedAt ?? "no-trip";
 
+  const countLabel = isOnboard
+    ? "On train"
+    : savedTrip
+      ? `${mapLiveCount} on route`
+      : `${mapLiveCount} live`;
+
   return (
     <div
       className={`app-frame troisi-root ${bottomCollapsed ? "app-frame--bottom-collapsed" : ""}`}
     >
-      <div className="map-top-controls">
-        <button
-          type="button"
-          className="map-top-controls-btn glass"
-          aria-expanded={linesOpen}
-          onClick={openLines}
-        >
-          Lines
-          {activeLine && (
-            <span className="map-top-controls-active">
-              {parseLineKey(activeLine)?.route ?? "1"}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          className={`map-top-controls-btn glass ${!bottomCollapsed ? "map-top-controls-btn--on" : ""} ${savedTrip ? "map-top-controls-btn--trip" : ""}`}
-          aria-expanded={!bottomCollapsed}
-          aria-label={
-            bottomCollapsed
-              ? savedTrip
-                ? "Show trip and trains panel"
-                : "Show trains panel"
-              : "Collapse trains panel"
-          }
-          onClick={() => setBottomCollapsed((c) => !c)}
-        >
-          {savedTrip ? "Trip" : "Trains"}
-          <span className="map-top-controls-chevron" aria-hidden>
-            {bottomCollapsed ? "▲" : "▼"}
-          </span>
-        </button>
-        <span className="map-top-controls-meta glass">
-          {validating && <span className="bottom-pane-live-dot" title="Updating" />}
-          <span className="map-top-controls-count">
-            {isOnboard
-              ? "On train"
-              : savedTrip
-                ? `${mapLiveCount} on route`
-                : `${mapLiveCount} live`}
-          </span>
-        </span>
-      </div>
+      <MapTopControls
+        linesOpen={linesOpen}
+        onOpenLines={openLines}
+        activeLine={activeLine}
+        bottomCollapsed={bottomCollapsed}
+        onToggleBottom={() => setBottomCollapsed((c) => !c)}
+        savedTrip={savedTrip}
+        validating={validating}
+        countLabel={countLabel}
+      />
 
       <section className="map-pane" aria-label="Map">
         <NjLiveMap
