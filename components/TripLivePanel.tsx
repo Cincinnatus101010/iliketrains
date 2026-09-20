@@ -16,8 +16,8 @@ type TripLivePanelProps = {
   trip: SavedTrip;
   trains: LiveTrain[];
   activeLine: LineKey | null;
-  followedTrainId: string | null;
-  onFollowTrain: (trainId: string) => void;
+  trackingTrainId: string | null;
+  onTrackTrain: (trainId: string) => void;
   onEditTrip: () => void;
   onEndTrip: () => void;
 };
@@ -26,8 +26,8 @@ export function TripLivePanel({
   trip,
   trains,
   activeLine,
-  followedTrainId,
-  onFollowTrain,
+  trackingTrainId,
+  onTrackTrain,
   onEditTrip,
   onEndTrip,
 }: TripLivePanelProps) {
@@ -40,9 +40,9 @@ export function TripLivePanel({
       a.label.localeCompare(b.label),
   );
 
-  const listTrains = followedTrainId ? sorted.filter((t) => t.id === followedTrainId) : sorted;
+  const listTrains = trackingTrainId ? sorted.filter((t) => t.id === trackingTrainId) : sorted;
 
-  const followedTrain = followedTrainId ? (listTrains[0] ?? null) : null;
+  const followedTrain = trackingTrainId ? (listTrains[0] ?? null) : null;
   const upcoming = useFollowUpcomingStops(followedTrain);
 
   return (
@@ -64,7 +64,7 @@ export function TripLivePanel({
               ? ` · dep ${formatNjDateTime(trip.chosenDeparture.scheduledAt)}`
               : ""}
           </p>
-          {route.stats && !followedTrainId && (
+          {route.stats && !trackingTrainId && (
             <p className="trip-dock-lines">{route.stats.lines.map((l) => l.label).join(" · ")}</p>
           )}
         </div>
@@ -79,12 +79,12 @@ export function TripLivePanel({
       </div>
 
       <p className="panel-meta trip-dock-live-meta">
-        {followedTrainId
+        {trackingTrainId
           ? "Following your train"
           : `${sorted.length} live on your route${activeLine ? " · line filter on" : ""}`}
       </p>
 
-      {!followedTrainId && (
+      {!trackingTrainId && (
         <div className="trip-live-route">
           <TripTimeline steps={route.steps} compact />
         </div>
@@ -97,13 +97,13 @@ export function TripLivePanel({
       )}
 
       <p className="panel-kicker trip-live-trains-label">
-        {followedTrainId ? "Your train" : "On your route now"}
+        {trackingTrainId ? "Your train" : "On your route now"}
       </p>
       <ul className="train-list" aria-label="Live trains on trip">
         {listTrains.length === 0 && (
           <li className="train-list-empty">
             <p className="trip-live-empty">
-              {followedTrainId
+              {trackingTrainId
                 ? "Your train isn’t on the map right now."
                 : "No live trains on these lines right now."}
             </p>
@@ -114,8 +114,8 @@ export function TripLivePanel({
             <TrainListRow
               train={train}
               highlight
-              following={followedTrainId === train.id}
-              onFollow={onFollowTrain}
+              following={trackingTrainId === train.id}
+              onFollow={onTrackTrain}
             />
           </li>
         ))}

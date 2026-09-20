@@ -15,8 +15,8 @@ type TrainPanelProps = {
   activeLine: LineKey | null;
   onRefresh: () => void;
   highlightTrainIds?: Set<string>;
-  followedTrainId?: string | null;
-  onFollowTrain?: (trainId: string) => void;
+  trackingTrainId?: string | null;
+  onTrackTrain?: (trainId: string) => void;
 };
 
 function panelTitle(activeLine: LineKey | null): string {
@@ -34,8 +34,8 @@ export function TrainPanel({
   activeLine,
   onRefresh,
   highlightTrainIds,
-  followedTrainId,
-  onFollowTrain,
+  trackingTrainId,
+  onTrackTrain,
 }: TrainPanelProps) {
   const filtered = trains.filter((t) => trainMatchesLineKey(t, activeLine));
   const sorted = [...filtered].sort(
@@ -75,8 +75,8 @@ export function TrainPanel({
             <TrainListRow
               train={train}
               highlight={highlightTrainIds?.has(train.id)}
-              following={followedTrainId === train.id}
-              onFollow={onFollowTrain}
+              following={trackingTrainId === train.id}
+              onFollow={onTrackTrain}
             />
           </li>
         ))}

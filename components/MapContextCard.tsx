@@ -6,14 +6,14 @@ import { trainFollowPrimary, trainFollowSecondary } from "@/lib/trainDisplay";
 import type { LiveTrain } from "@/lib/types";
 
 type MapContextCardProps = {
-  followedTrain: LiveTrain;
-  onStopFollow: () => void;
+  trackedTrain: LiveTrain;
+  onStopTracking: () => void;
 };
 
-export function MapContextCard({ followedTrain, onStopFollow }: MapContextCardProps) {
-  const upcoming = useFollowUpcomingStops(followedTrain);
-  const primary = trainFollowPrimary(followedTrain);
-  const secondary = trainFollowSecondary(followedTrain);
+export function MapContextCard({ trackedTrain, onStopTracking }: MapContextCardProps) {
+  const upcoming = useFollowUpcomingStops(trackedTrain);
+  const primary = trainFollowPrimary(trackedTrain);
+  const secondary = trainFollowSecondary(trackedTrain);
 
   return (
     <div className="map-context-card glass map-context-card--follow" role="status">
@@ -26,7 +26,7 @@ export function MapContextCard({ followedTrain, onStopFollow }: MapContextCardPr
           <span className="map-context-card-follow-sub">{secondary}</span>
           <FollowStopList stops={upcoming} compact />
         </div>
-        <button type="button" className="map-context-card-stop" onClick={onStopFollow}>
+        <button type="button" className="map-context-card-stop" onClick={onStopTracking}>
           Stop
         </button>
       </div>

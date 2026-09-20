@@ -1,12 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { type Coordinator, serializeKey, useSteddy } from "steddy";
-import { fetchFollowedTrain } from "@/lib/fetchFollowedTrain";
-import { fetchNjTrains } from "@/lib/fetchNjTrains";
-import { fetchSubwayTrains } from "@/lib/fetchSubwayTrains";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Coordinator } from "steddy";
 import { type LineKey, lineKey, parseLineKey, trainMatchesLineKey } from "@/lib/lineKey";
+import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { trainLiveSignature, trainPositionsSignature } from "@/lib/map/trainSyncKey";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import type { MapScope } from "@/lib/types";
@@ -14,6 +12,7 @@ import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapContextCard } from "./MapContextCard";
 import { useHomeSession } from "./useHomeSession";
+import { useLiveTrainFeeds } from "./useLiveTrainFeeds";
 
 const NavigationSheet = dynamic(() => import("./NavigationSheet").then((m) => m.NavigationSheet), {
   ssr: false,
@@ -24,11 +23,7 @@ const NjLiveMap = dynamic(() => import("./NjLiveMap").then((m) => m.NjLiveMap), 
   loading: () => <div className="nj-map nj-map--loading">Loading map…</div>,
 });
 
-const NJ_KEY = ["nj-trains"] as const;
-const SUBWAY_KEY = ["subway-trains"] as const;
-const NJ_POLL_MS = 20_000;
-const SUBWAY_POLL_MS = 5_000;
-const FOLLOW_POLL_MS = 5_000;
+const MAP_PADDING = { top: 56, bottom: 24, left: 16, right: 16 } as const;
 
 type HomeClientProps = {
   coordinator: Coordinator;
@@ -52,7 +47,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
 
   const {
     savedTrip,
-    trackingTrainId: followedTrainId,
+    trackingTrainId,
     isOnboard,
     startTrip,
     endTrip,
@@ -60,65 +55,15 @@ export function HomeClient({ coordinator }: HomeClientProps) {
     stopTracking,
   } = useHomeSession();
 
+  const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
+    useLiveTrainFeeds({ coordinator, trackingTrainId, isOnboard });
+
   const followMissedPolls = useRef(0);
-  const followKey = followedTrainId ? (["followed-train", followedTrainId] as const) : null;
 
-  const {
-    data: njData,
-    error: njError,
-    isLoading: njLoading,
-    isValidating: njValidating,
-  } = useSteddy(isOnboard ? null : NJ_KEY, fetchNjTrains, {
-    staleTime: NJ_POLL_MS,
-    refetchInterval: NJ_POLL_MS,
-  });
-
-  const {
-    data: subwayData,
-    error: subwayError,
-    isLoading: subwayLoading,
-    isValidating: subwayValidating,
-  } = useSteddy(isOnboard ? null : SUBWAY_KEY, fetchSubwayTrains, {
-    staleTime: SUBWAY_POLL_MS,
-    refetchInterval: SUBWAY_POLL_MS,
-  });
-
-  const {
-    data: followData,
-    error: followError,
-    isLoading: followLoading,
-    isValidating: followValidating,
-  } = useSteddy(followKey, fetchFollowedTrain, {
-    staleTime: FOLLOW_POLL_MS,
-    refetchInterval: FOLLOW_POLL_MS,
-  });
-
-  const handleScopeChange = (next: MapScope) => {
+  const handleScopeChange = useCallback((next: MapScope) => {
     setScope(next);
     setActiveLine((line) => (lineMatchesScope(line, next) ? line : null));
-  };
-
-  const refresh = () => {
-    if (followedTrainId) {
-      void coordinator.revalidate(
-        serializeKey(["followed-train", followedTrainId]),
-        fetchFollowedTrain,
-        {
-          force: true,
-        },
-      );
-      return;
-    }
-    void coordinator.revalidate(serializeKey(NJ_KEY), fetchNjTrains, { force: true });
-    void coordinator.revalidate(serializeKey(SUBWAY_KEY), fetchSubwayTrains, { force: true });
-  };
-
-  const allTrains = useMemo(() => {
-    if (isOnboard) return followData?.trains ?? [];
-    const nj = njData?.trains ?? [];
-    const subway = subwayData?.trains ?? [];
-    return [...subway, ...nj];
-  }, [isOnboard, followData?.trains, njData?.trains, subwayData?.trains]);
+  }, []);
 
   const scopedTrains = useMemo(() => {
     if (scope === "mta") return allTrains.filter((t) => t.network === "mta");
@@ -143,47 +88,50 @@ export function HomeClient({ coordinator }: HomeClientProps) {
       ? visibleTrains.length
       : scopedTrains.length;
 
-  const followedTrain = useMemo(
-    () => (followedTrainId ? (allTrains.find((t) => t.id === followedTrainId) ?? null) : null),
-    [allTrains, followedTrainId],
+  const trackedTrain = useMemo(
+    () => (trackingTrainId ? (allTrains.find((t) => t.id === trackingTrainId) ?? null) : null),
+    [allTrains, trackingTrainId],
   );
 
   useEffect(() => {
-    if (!followedTrainId) {
+    if (!trackingTrainId) {
       followMissedPolls.current = 0;
       return;
     }
-    if (followedTrain) {
+    if (trackedTrain) {
       followMissedPolls.current = 0;
       return;
     }
     followMissedPolls.current += 1;
-    if (followMissedPolls.current >= 3) {
+    if (followMissedPolls.current >= TRAIN_MISSED_FEED_POLLS) {
       followMissedPolls.current = 0;
       stopTracking();
     }
-  }, [followedTrainId, followedTrain, stopTracking]);
+  }, [trackingTrainId, trackedTrain, stopTracking]);
 
-  const handleFollowTrain = (trainId: string) => {
-    toggleTrackTrain(trainId);
-    setBottomCollapsed(false);
-  };
+  const handleTrackTrain = useCallback(
+    (trainId: string) => {
+      toggleTrackTrain(trainId);
+      setBottomCollapsed(false);
+    },
+    [toggleTrackTrain],
+  );
 
   const mapTrainsSignature = useMemo(() => trainPositionsSignature(visibleTrains), [visibleTrains]);
 
   const tripHighlightTrainIds = useMemo(() => {
     if (!savedTrip) return new Set<string>();
-    if (followedTrainId) return new Set([followedTrainId]);
+    if (trackingTrainId) return new Set([trackingTrainId]);
     const ids = scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).map((t) => t.id);
     return new Set(ids);
-  }, [scopedTrains, savedTrip, followedTrainId]);
+  }, [scopedTrains, savedTrip, trackingTrainId]);
 
   const tripHighlightKey = useMemo(
     () => [...tripHighlightTrainIds].sort().join("\n"),
     [tripHighlightTrainIds],
   );
 
-  const showPlannedRoute = Boolean(savedTrip) && !followedTrainId;
+  const showPlannedRoute = Boolean(savedTrip) && !trackingTrainId;
   const plannedRouteCoords = showPlannedRoute ? (savedTrip?.route.coordinatesLonLat ?? null) : null;
   const plannedRouteFitKey =
     showPlannedRoute && savedTrip
@@ -199,51 +147,22 @@ export function HomeClient({ coordinator }: HomeClientProps) {
     return counts;
   }, [scopedTrains]);
 
-  const apiErrors = isOnboard
-    ? ([
-        followData?.error,
-        followError instanceof Error
-          ? followError.message
-          : followError
-            ? String(followError)
-            : null,
-      ].filter(Boolean) as string[])
-    : ([
-        njData?.error,
-        subwayData?.error,
-        njError instanceof Error ? njError.message : njError ? String(njError) : null,
-        subwayError instanceof Error
-          ? subwayError.message
-          : subwayError
-            ? String(subwayError)
-            : null,
-      ].filter(Boolean) as string[]);
-
-  const njConfigured = isOnboard ? (followData?.configured ?? true) : (njData?.configured ?? true);
-  const loading = isOnboard ? followLoading : njLoading || subwayLoading;
-  const validating = isOnboard ? followValidating : njValidating || subwayValidating;
-  const updatedAt = isOnboard
-    ? followData?.updatedAt
-    : pickLatestUpdatedAt(njData?.updatedAt, subwayData?.updatedAt);
-
-  const followedTrainLiveKey = followedTrain ? trainLiveSignature(followedTrain) : null;
-
-  const mapPadding = useMemo(
-    () => ({
-      top: 56,
-      bottom: 24,
-      left: 16,
-      right: 16,
-    }),
-    [],
-  );
+  const trackedTrainLiveKey = trackedTrain ? trainLiveSignature(trackedTrain) : null;
 
   const dockSessionKey = savedTrip?.savedAt ?? "no-trip";
 
-  const handleStartTrip = (trip: Parameters<typeof startTrip>[0]) => {
-    startTrip(trip);
-    setBottomCollapsed(false);
-  };
+  const handleStartTrip = useCallback(
+    (trip: Parameters<typeof startTrip>[0]) => {
+      startTrip(trip);
+      setBottomCollapsed(false);
+    },
+    [startTrip],
+  );
+
+  const openNav = useCallback(() => setNavOpen(true), []);
+  const closeNav = useCallback(() => setNavOpen(false), []);
+  const openLines = useCallback(() => setLinesOpen(true), []);
+  const closeLines = useCallback(() => setLinesOpen(false), []);
 
   return (
     <div
@@ -254,7 +173,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
           type="button"
           className="map-top-controls-btn glass"
           aria-expanded={linesOpen}
-          onClick={() => setLinesOpen(true)}
+          onClick={openLines}
         >
           Lines
           {activeLine && (
@@ -298,19 +217,19 @@ export function HomeClient({ coordinator }: HomeClientProps) {
           trains={visibleTrains}
           trainsSignature={mapTrainsSignature}
           highlightLine={activeLine}
-          padding={mapPadding}
+          padding={MAP_PADDING}
           plannedRoute={plannedRouteCoords}
           plannedRouteFitKey={plannedRouteFitKey}
           tripHighlightTrainIds={tripHighlightTrainIds}
           tripHighlightKey={tripHighlightKey}
-          followedTrainId={followedTrainId}
-          followedTrainLiveKey={followedTrainLiveKey}
-          onFollowTrain={handleFollowTrain}
-          onClearFollow={stopTracking}
+          trackingTrainId={trackingTrainId}
+          trackingTrainLiveKey={trackedTrainLiveKey}
+          onTrackTrain={handleTrackTrain}
+          onStopTracking={stopTracking}
         />
 
-        {followedTrain && (
-          <MapContextCard followedTrain={followedTrain} onStopFollow={stopTracking} />
+        {trackedTrain && (
+          <MapContextCard trackedTrain={trackedTrain} onStopTracking={stopTracking} />
         )}
 
         {!njConfigured && (
@@ -330,7 +249,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
           className="nav-fab"
           aria-label="Plan a trip"
           aria-expanded={navOpen}
-          onClick={() => setNavOpen(true)}
+          onClick={openNav}
         >
           <span className="nav-fab-icon" aria-hidden>
             +
@@ -350,9 +269,9 @@ export function HomeClient({ coordinator }: HomeClientProps) {
             onRefresh={refresh}
             savedTrip={savedTrip}
             tripHighlightTrainIds={tripHighlightTrainIds}
-            followedTrainId={followedTrainId}
-            onFollowTrain={handleFollowTrain}
-            onEditTrip={() => setNavOpen(true)}
+            trackingTrainId={trackingTrainId}
+            onTrackTrain={handleTrackTrain}
+            onEditTrip={openNav}
             onEndTrip={endTrip}
           />
         )}
@@ -360,7 +279,7 @@ export function HomeClient({ coordinator }: HomeClientProps) {
 
       <LinesFilterDrawer
         open={linesOpen}
-        onClose={() => setLinesOpen(false)}
+        onClose={closeLines}
         scope={scope}
         onScopeChange={handleScopeChange}
         activeLine={activeLine}
@@ -370,17 +289,11 @@ export function HomeClient({ coordinator }: HomeClientProps) {
 
       <NavigationSheet
         open={navOpen}
-        onClose={() => setNavOpen(false)}
+        onClose={closeNav}
         initialTrip={savedTrip}
         onStartTrip={handleStartTrip}
         onEndTrip={endTrip}
       />
     </div>
   );
-}
-
-function pickLatestUpdatedAt(a?: string, b?: string): string | undefined {
-  if (!a) return b;
-  if (!b) return a;
-  return a > b ? a : b;
 }

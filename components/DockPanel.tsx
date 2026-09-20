@@ -20,8 +20,8 @@ type DockPanelProps = {
   onRefresh: () => void;
   savedTrip: SavedTrip | null;
   tripHighlightTrainIds: Set<string>;
-  followedTrainId: string | null;
-  onFollowTrain: (trainId: string) => void;
+  trackingTrainId: string | null;
+  onTrackTrain: (trainId: string) => void;
   onEditTrip: () => void;
   onEndTrip: () => void;
 };
@@ -29,8 +29,8 @@ type DockPanelProps = {
 export function DockPanel({
   savedTrip,
   tripHighlightTrainIds,
-  followedTrainId,
-  onFollowTrain,
+  trackingTrainId,
+  onTrackTrain,
   onEditTrip,
   onEndTrip,
   ...props
@@ -77,8 +77,8 @@ export function DockPanel({
           trip={savedTrip}
           trains={props.trains}
           activeLine={props.activeLine}
-          followedTrainId={followedTrainId}
-          onFollowTrain={onFollowTrain}
+          trackingTrainId={trackingTrainId}
+          onTrackTrain={onTrackTrain}
           onEditTrip={onEditTrip}
           onEndTrip={onEndTrip}
         />
@@ -86,8 +86,8 @@ export function DockPanel({
         <TrainPanel
           {...props}
           highlightTrainIds={tripHighlightTrainIds}
-          followedTrainId={followedTrainId}
-          onFollowTrain={onFollowTrain}
+          trackingTrainId={trackingTrainId}
+          onTrackTrain={onTrackTrain}
         />
       ) : (
         <SchedulePanel activeLine={props.activeLine} defaultStationCode={scheduleStationCode} />

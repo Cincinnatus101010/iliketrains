@@ -23,10 +23,10 @@ type NjLiveMapProps = {
   plannedRouteFitKey: string | null;
   tripHighlightTrainIds: Set<string>;
   tripHighlightKey: string;
-  followedTrainId: string | null;
-  followedTrainLiveKey: string | null;
-  onFollowTrain: (trainId: string) => void;
-  onClearFollow: () => void;
+  trackingTrainId: string | null;
+  trackingTrainLiveKey: string | null;
+  onTrackTrain: (trainId: string) => void;
+  onStopTracking: () => void;
 };
 
 export function NjLiveMap({
@@ -38,10 +38,10 @@ export function NjLiveMap({
   plannedRouteFitKey,
   tripHighlightTrainIds,
   tripHighlightKey,
-  followedTrainId,
-  followedTrainLiveKey,
-  onFollowTrain,
-  onClearFollow,
+  trackingTrainId,
+  trackingTrainLiveKey,
+  onTrackTrain,
+  onStopTracking,
 }: NjLiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GameMap | null>(null);
@@ -51,12 +51,14 @@ export function NjLiveMap({
   const lastRouteFitKeyRef = useRef<string | null>(null);
   const trainsRef = useRef(trains);
   trainsRef.current = trains;
-  const onFollowTrainRef = useRef(onFollowTrain);
-  onFollowTrainRef.current = onFollowTrain;
-  const onClearFollowRef = useRef(onClearFollow);
-  onClearFollowRef.current = onClearFollow;
-  const followedTrainIdRef = useRef(followedTrainId);
-  followedTrainIdRef.current = followedTrainId;
+  const onTrackTrainRef = useRef(onTrackTrain);
+  onTrackTrainRef.current = onTrackTrain;
+  const onStopTrackingRef = useRef(onStopTracking);
+  onStopTrackingRef.current = onStopTracking;
+  const trackingTrainIdRef = useRef(trackingTrainId);
+  trackingTrainIdRef.current = trackingTrainId;
+  const tripHighlightTrainIdsRef = useRef(tripHighlightTrainIds);
+  tripHighlightTrainIdsRef.current = tripHighlightTrainIds;
   const paddingRef = useRef(padding);
   paddingRef.current = padding;
   const followPanFromMapRef = useRef(false);
@@ -94,7 +96,7 @@ export function NjLiveMap({
       markersRef.current = controller;
 
       const onUserPan = () => {
-        if (followedTrainIdRef.current) onClearFollowRef.current();
+        if (trackingTrainIdRef.current) onStopTrackingRef.current();
       };
       map.on("dragstart", onUserPan);
       map.on("rotatestart", onUserPan);
@@ -152,6 +154,7 @@ export function NjLiveMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
+    // Map init runs once; padding, highlights, and trains sync in useLayoutEffect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once
   }, []);
 
@@ -163,7 +166,7 @@ export function NjLiveMap({
     map.setPadding(padding);
     applyLineHighlight(map, highlightLine);
     controller.sync(trains);
-    controller.setTripHighlightTrainIds(tripHighlightTrainIds);
+    controller.setTripHighlightTrainIds(tripHighlightTrainIdsRef.current);
 
     const panToTrain = (lngLat: [number, number]) => {
       followPanFromMapRef.current = true;
@@ -175,16 +178,16 @@ export function NjLiveMap({
     };
 
     controller.setFollowHandlers(
-      followedTrainId,
-      onFollowTrain,
-      followedTrainId ? (lngLat) => panToTrain(lngLat) : null,
+      trackingTrainId,
+      onTrackTrain,
+      trackingTrainId ? (lngLat) => panToTrain(lngLat) : null,
     );
 
-    if (followedTrainId && followedTrainLiveKey) {
-      const train = trains.find((t) => t.id === followedTrainId);
+    if (trackingTrainId && trackingTrainLiveKey) {
+      const train = trains.find((t) => t.id === trackingTrainId);
       if (train) {
-        const initialFocus = prevFollowIdRef.current !== followedTrainId;
-        prevFollowIdRef.current = followedTrainId;
+        const initialFocus = prevFollowIdRef.current !== trackingTrainId;
+        prevFollowIdRef.current = trackingTrainId;
         followPanFromMapRef.current = true;
         const center: [number, number] = [train.longitude, train.latitude];
         const zoom = Math.max(map.getZoom(), 12.5);
@@ -234,11 +237,10 @@ export function NjLiveMap({
     trainsSignature,
     highlightLine,
     padding,
-    tripHighlightTrainIds,
     tripHighlightKey,
-    followedTrainId,
-    followedTrainLiveKey,
-    onFollowTrain,
+    trackingTrainId,
+    trackingTrainLiveKey,
+    onTrackTrain,
     plannedRoute,
     plannedRouteFitKey,
   ]);
