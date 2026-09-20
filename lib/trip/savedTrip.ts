@@ -17,14 +17,53 @@ export type SavedTrip = {
 
 const STORAGE_KEY = "iliketrains.savedTrip.v1";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/** Validate JSON from localStorage before trusting it as a SavedTrip. */
+export function parseSavedTrip(raw: unknown): SavedTrip | null {
+  if (!isRecord(raw)) return null;
+  const fromKey = raw.fromKey;
+  const toKey = raw.toKey;
+  const fromName = raw.fromName;
+  const toName = raw.toName;
+  const savedAt = raw.savedAt;
+  const route = raw.route;
+  if (typeof fromKey !== "string" || !fromKey) return null;
+  if (typeof toKey !== "string" || !toKey) return null;
+  if (typeof fromName !== "string" || !fromName) return null;
+  if (typeof toName !== "string" || !toName) return null;
+  if (typeof savedAt !== "string" || !savedAt) return null;
+  if (!isRecord(route) || !Array.isArray(route.steps)) return null;
+
+  const trip: SavedTrip = {
+    fromKey,
+    toKey,
+    fromName,
+    toName,
+    savedAt,
+    route: route as SavedTrip["route"],
+  };
+
+  if (raw.chosenDeparture !== undefined && raw.chosenDeparture !== null) {
+    trip.chosenDeparture = raw.chosenDeparture as SavedTrip["chosenDeparture"];
+  }
+  if (raw.trackingTrainId !== undefined) {
+    const tid = raw.trackingTrainId;
+    trip.trackingTrainId =
+      tid === null ? null : typeof tid === "string" && tid.trim() ? tid.trim() : null;
+  }
+
+  return trip;
+}
+
 export function readSavedTrip(): SavedTrip | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as SavedTrip;
-    if (!parsed?.fromKey || !parsed?.toKey || !parsed?.route?.steps) return null;
-    return parsed;
+    return parseSavedTrip(JSON.parse(raw));
   } catch {
     return null;
   }
