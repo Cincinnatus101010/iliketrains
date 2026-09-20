@@ -1,9 +1,5 @@
 import type { SavedTrip } from "./savedTrip";
-import {
-  parseTripTrackingState,
-  type TripTrackingState,
-  trackingStateFromLegacyId,
-} from "./trackingState";
+import { parseTripTrackingState, type TripTrackingState } from "./trackingState";
 
 /** Live map id for the trip's chosen NJ departure, when known. */
 export function liveTrainIdForChosenDeparture(trip: SavedTrip): string | null {
@@ -14,14 +10,8 @@ export function liveTrainIdForChosenDeparture(trip: SavedTrip): string | null {
   return `njt-${raw}`;
 }
 
-function legacyTrackingTrainId(trip: SavedTrip): string | null | undefined {
-  const legacy = (trip as SavedTrip & { trackingTrainId?: string | null }).trackingTrainId;
-  return legacy;
-}
-
 function trackingStateForTrip(trip: SavedTrip): TripTrackingState | undefined {
-  if (trip.tracking !== undefined) return trip.tracking;
-  return trackingStateFromLegacyId(legacyTrackingTrainId(trip));
+  return trip.tracking;
 }
 
 /** Which train we track (onboard / follow), if any — read only from a saved trip. */
