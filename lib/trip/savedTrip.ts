@@ -1,4 +1,5 @@
 import type { ScheduleDeparture } from "@/lib/types";
+import { normalizePersistedTracking } from "./tracking";
 import type { TripTrackingState } from "./trackingState";
 import { parseTripTrackingState, trackingStateFromLegacyId } from "./trackingState";
 import { ensureRouteStats, tripStatsHeadline } from "./tripStats";
@@ -59,7 +60,7 @@ export function parseSavedTrip(raw: unknown): SavedTrip | null {
     trip.tracking = trackingStateFromLegacyId(raw.trackingTrainId as string | null);
   }
 
-  return trip;
+  return normalizePersistedTracking(trip);
 }
 
 export function readSavedTrip(): SavedTrip | null {

@@ -37,6 +37,16 @@ export function tripWithTracking(trip: SavedTrip, trainId: string | null): Saved
   return { ...trip, tracking: { mode: "train", trainId } };
 }
 
+/** After load, collapse redundant train tracking when it matches chosen departure. */
+export function normalizePersistedTracking(trip: SavedTrip): SavedTrip {
+  if (trip.tracking?.mode !== "train") return trip;
+  const departureId = liveTrainIdForChosenDeparture(trip);
+  if (departureId && departureId === trip.tracking.trainId) {
+    return { ...trip, tracking: { mode: "auto" } };
+  }
+  return trip;
+}
+
 /** Persist default tracking when starting a trip from the planner. */
 export function prepareTripForStart(trip: SavedTrip): SavedTrip {
   if (trip.tracking !== undefined) return trip;
