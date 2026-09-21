@@ -2,6 +2,7 @@ import type { ScheduleDeparture } from "@/lib/types";
 import { normalizePersistedTracking } from "./tracking";
 import type { TripTrackingState } from "./trackingState";
 import { parseTripTrackingState, trackingStateFromLegacyId } from "./trackingState";
+import { activeTripOrNull } from "./tripExpiry";
 import { ensureRouteStats, tripStatsHeadline } from "./tripStats";
 import type { PlannedRoute } from "./types";
 
@@ -68,7 +69,12 @@ export function readSavedTrip(): SavedTrip | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return parseSavedTrip(JSON.parse(raw));
+    const parsed = parseSavedTrip(JSON.parse(raw));
+    const active = activeTripOrNull(parsed);
+    if (parsed && !active) {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+    return active;
   } catch {
     return null;
   }
