@@ -1,6 +1,7 @@
+import { parseNjScheduleAtMs } from "@/lib/formatTime";
 import type { ScheduleDeparture, ScheduleResponse } from "@/lib/types";
 import { config } from "./config";
-import { dedupeUpcomingDepartures } from "./dedupeDepartures";
+import { sortUniqueDepartureRows } from "./dedupeDepartures";
 import { canonicalNjRoute, routeFromApiLine } from "./njRoutes";
 import { normalizePlatformTrack } from "./platformTrack";
 import { fetchStationSchedule } from "./schedule";
@@ -30,6 +31,13 @@ const dayFailUntil = new Map<string, number>();
 /** API allows ~10 station-schedule calls/day — cache aggressively. */
 const DAY_CACHE_MS = 4 * 60 * 60 * 1000;
 const DAY_FAIL_COOLDOWN_MS = 15 * 60 * 1000;
+
+/** Day timetables may include every stop on the line; keep only rows for the requested station. */
+export function scheduleRowAtStation(stopCode: string | undefined, stationCode: string): boolean {
+  const stop = stopCode?.trim().toUpperCase();
+  if (!stop) return true;
+  return stop === stationCode.trim().toUpperCase();
+}
 
 function parseDayItem(row: RawDayItem): ScheduleDeparture | null {
   const trainId = row.TRAIN_ID?.trim();
@@ -62,8 +70,16 @@ function filterByRoute(items: ScheduleDeparture[], routeCode: string): ScheduleD
   return items.filter((i) => itemMatchesRoute(i, routeCode));
 }
 
+const UPCOMING_GRACE_MS = 2 * 60 * 1000;
+
 function upcomingItems(items: ScheduleDeparture[]): ScheduleDeparture[] {
-  return dedupeUpcomingDepartures(items);
+  const refMs = Date.now();
+  const cutoff = refMs - UPCOMING_GRACE_MS;
+  const future = items.filter((item) => {
+    const at = parseNjScheduleAtMs(item.scheduledAt, refMs);
+    return at != null && at >= cutoff;
+  });
+  return sortUniqueDepartureRows(future);
 }
 
 export async function fetchStationDaySchedule(
@@ -112,7 +128,9 @@ export async function fetchStationDaySchedule(
 
     const body = (await response.json()) as RawDayStation[] | RawDayStation;
     const block = Array.isArray(body) ? body[0] : body;
-    const rawItems = block?.ITEMS ?? [];
+    const rawItems = (block?.ITEMS ?? []).filter((row) =>
+      scheduleRowAtStation(row.STOP_CODE, stationCode),
+    );
     const stationName = block?.STATIONNAME?.trim() ?? station.name;
     const allItems = rawItems.map(parseDayItem).filter((i): i is ScheduleDeparture => i != null);
 

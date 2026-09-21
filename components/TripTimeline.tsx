@@ -11,7 +11,10 @@ type TripTimelineProps = {
 
 function stepTitle(step: RouteStep): string {
   if (step.kind === "walk") {
-    if (step.fromName === step.toName) return "Walk";
+    const sameStop = step.fromName.trim().toLowerCase() === step.toName.trim().toLowerCase();
+    if (sameStop) {
+      return `Change trains at ${step.toName}`;
+    }
     const mins = step.walkMinutes;
     const suffix = mins ? ` · ~${mins} min` : "";
     return `Transfer · walk to ${step.toName}${suffix}`;
@@ -26,8 +29,12 @@ function stepDetail(step: RouteStep): string | null {
   if (step.kind === "ride" && step.fromName !== step.toName) {
     return `Board at ${step.fromName} · exit at ${step.toName}`;
   }
-  if (step.kind === "walk" && step.walkDistanceM != null && step.walkDistanceM > 0) {
-    return formatWalkDistance(step.walkDistanceM);
+  if (step.kind === "walk") {
+    const sameStop = step.fromName.trim().toLowerCase() === step.toName.trim().toLowerCase();
+    if (sameStop) return "Stay on platform or follow signs to your next train";
+    if (step.walkDistanceM != null && step.walkDistanceM > 0) {
+      return formatWalkDistance(step.walkDistanceM);
+    }
   }
   return null;
 }

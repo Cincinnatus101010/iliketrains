@@ -5,11 +5,16 @@ export async function fetchStationScheduleClient(
   key: Key,
   { signal }: { signal: AbortSignal },
 ): Promise<ScheduleResponse> {
-  const station = typeof key === "string" ? key : String(key[1] ?? "");
+  const parts = typeof key === "string" ? ([key] as const) : key;
+  const tag = String(parts[0] ?? "");
+  const station = String(parts[1] ?? parts[0] ?? "");
   if (station === "idle" || station === "skip") {
     return { stationCode: "", stationName: "", items: [], error: null };
   }
-  const line = typeof key !== "string" && key[2] != null ? String(key[2]) : "";
+  const line =
+    (tag === "trip-schedule-station" || tag === "schedule") && parts[2] != null
+      ? String(parts[2])
+      : "";
   const params = new URLSearchParams({ station });
   if (line) params.set("line", line);
   const res = await fetch(`/api/schedule?${params}`, { signal, cache: "no-store" });

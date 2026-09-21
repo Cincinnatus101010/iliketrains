@@ -2,11 +2,12 @@
 
 import { formatNjDateTime } from "@/lib/formatTime";
 import type { LineKey } from "@/lib/lineKey";
+import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripSummaryLabel } from "@/lib/trip/savedTrip";
 import { trackingTrainIdForTrip } from "@/lib/trip/tracking";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
-import { ensureRouteStats } from "@/lib/trip/tripStats";
+import { ensureRouteStats, tripConnectionLabel } from "@/lib/trip/tripStats";
 import type { LiveTrain } from "@/lib/types";
 import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainListRow } from "./TrainListRow";
@@ -33,6 +34,8 @@ export function TripLivePanel({
 }: TripLivePanelProps) {
   const trackingTrainId = trackingTrainIdForTrip(trip);
   const route = ensureRouteStats(trip.route);
+  const connection = tripConnectionLabel(route);
+  const displaySteps = routeStepsForDisplay(route.steps);
   const onRoute = trains.filter((t) => trainMatchesTrip(t, trip));
   const sorted = [...onRoute].sort(
     (a, b) =>
@@ -64,7 +67,8 @@ export function TripLivePanel({
               ? ` · dep ${formatNjDateTime(trip.chosenDeparture.scheduledAt)}`
               : ""}
           </p>
-          {route.stats && !trackingTrainId && (
+          {connection !== "Direct" && <p className="trip-dock-transfer">{connection}</p>}
+          {route.stats && (
             <p className="trip-dock-lines">{route.stats.lines.map((l) => l.label).join(" · ")}</p>
           )}
         </div>
@@ -84,11 +88,9 @@ export function TripLivePanel({
           : `${sorted.length} live on your route${activeLine ? " · line filter on" : ""}`}
       </p>
 
-      {!trackingTrainId && (
-        <div className="trip-live-route">
-          <TripTimeline steps={route.steps} compact />
-        </div>
-      )}
+      <div className="trip-live-route">
+        <TripTimeline steps={displaySteps} compact={Boolean(trackingTrainId)} />
+      </div>
 
       {trackedTrain && <TrainFollowBlock train={trackedTrain} onStopTracking={onStopTracking} />}
 

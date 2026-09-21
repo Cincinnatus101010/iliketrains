@@ -1,7 +1,8 @@
 "use client";
 
 import { parseLineKey } from "@/lib/lineKey";
-import { tripStatsHeadline } from "@/lib/trip/tripStats";
+import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
+import { tripConnectionLabel, tripStatsHeadline } from "@/lib/trip/tripStats";
 import type { PlannedRoute } from "@/lib/trip/types";
 import type { ScheduleDeparture } from "@/lib/types";
 import { TripDeparturePicker } from "./TripDeparturePicker";
@@ -28,6 +29,9 @@ export function TripPlanPreview({
 }: TripPlanPreviewProps) {
   const stats = route.stats;
   const isNjOrigin = parseLineKey(fromKey)?.network === "njt";
+  const connection = tripConnectionLabel(route);
+  const isDirect = connection === "Direct";
+  const displaySteps = routeStepsForDisplay(route.steps);
 
   return (
     <div className="trip-plan-preview">
@@ -38,6 +42,11 @@ export function TripPlanPreview({
             →
           </span>
           <span>{toName}</span>
+        </p>
+        <p
+          className={`trip-plan-connection-tag ${isDirect ? "trip-plan-connection-tag--direct" : "trip-plan-connection-tag--transfer"}`}
+        >
+          {connection}
         </p>
         {stats && <p className="trip-plan-preview-stats">{tripStatsHeadline(stats)}</p>}
       </div>
@@ -75,9 +84,15 @@ export function TripPlanPreview({
         </p>
       )}
 
-      <details className="trip-plan-steps">
+      {!isDirect && (
+        <div className="trip-plan-transfer-callout" role="note">
+          {connection}
+        </div>
+      )}
+
+      <details className="trip-plan-steps" open={!isDirect}>
         <summary className="trip-plan-steps-summary">Step-by-step directions</summary>
-        <TripTimeline steps={route.steps} />
+        <TripTimeline steps={displaySteps} />
       </details>
       <p className="trip-plan-footnote">
         Walk times are estimates. Live train positions update in the map panel after you start.

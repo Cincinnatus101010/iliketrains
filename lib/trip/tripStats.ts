@@ -1,4 +1,5 @@
 import { tripLineLabel } from "./lineLabel";
+import { tripTransferStopNames } from "./routeDisplaySteps";
 import type { PlannedRoute, RouteStep, TripStats, TripStatsLine } from "./types";
 
 export function buildTripStats(steps: RouteStep[], stopCount: number): TripStats {
@@ -28,15 +29,25 @@ export function buildTripStats(steps: RouteStep[], stopCount: number): TripStats
     }
   }
 
+  const railTransfers = Math.max(0, rideCount - 1);
+
   return {
     rideCount,
     walkCount,
-    transferCount: walkCount,
+    transferCount: railTransfers,
     stationCount: stopCount,
     totalWalkM,
     totalWalkMin,
     lines: [...lineMap.values()],
   };
+}
+
+/** “Direct” or where to change trains for this plan. */
+export function tripConnectionLabel(route: PlannedRoute): string {
+  const transferStops = tripTransferStopNames(route.steps);
+  if (transferStops.length === 0) return "Direct";
+  if (transferStops.length === 1) return `Transfer at ${transferStops[0]}`;
+  return `${transferStops.length} transfers · ${transferStops.join(", ")}`;
 }
 
 export function tripStatsHeadline(stats: TripStats): string {

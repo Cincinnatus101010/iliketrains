@@ -1,8 +1,8 @@
-/** Steddy cache keys for trip planner schedule fetches. */
+/** Steddy cache key — station + line (day timetable when available, else 19-rec fallback). */
 export function tripScheduleKey(
   stationCode: string,
   lineCode: string,
-  fromKey: string,
-): readonly ["trip-schedule", string, string, string] {
-  return ["trip-schedule", stationCode, lineCode, fromKey] as const;
+  boardKey: string,
+): readonly ["trip-schedule-station", string, string, string] {
+  return ["trip-schedule-station", stationCode, lineCode, boardKey] as const;
 }

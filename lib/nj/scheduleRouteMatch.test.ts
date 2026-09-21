@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ScheduleDeparture } from "@/lib/types";
-import { itemMatchesRoute } from "./stationSchedule";
+import { itemMatchesRoute, scheduleRowAtStation } from "./stationSchedule";
 
 function dep(partial: Partial<ScheduleDeparture>): ScheduleDeparture {
   return {
@@ -16,6 +16,14 @@ function dep(partial: Partial<ScheduleDeparture>): ScheduleDeparture {
     ...partial,
   };
 }
+
+describe("scheduleRowAtStation", () => {
+  it("drops rows for other stops on the same line timetable", () => {
+    expect(scheduleRowAtStation("HB", "MA")).toBe(false);
+    expect(scheduleRowAtStation("MA", "MA")).toBe(true);
+    expect(scheduleRowAtStation(undefined, "MA")).toBe(true);
+  });
+});
 
 describe("itemMatchesRoute (19-rec fallback)", () => {
   it("matches Morris & Essex from 19-rec abbreviations", () => {

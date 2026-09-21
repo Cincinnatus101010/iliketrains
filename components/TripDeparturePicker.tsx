@@ -5,14 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSteddy } from "steddy";
 import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
 import { formatNjScheduleDeparture } from "@/lib/formatTime";
+import { sortUniqueDepartureRows } from "@/lib/nj/dedupeDepartures";
 import { lineName } from "@/lib/nj/lines";
-import {
-  filterDeparturesAfterArrival,
-  filterDeparturesForFirstLeg,
-} from "@/lib/trip/filterDepartures";
+import { itemMatchesRoute } from "@/lib/nj/stationSchedule";
+import { filterDeparturesTowardTrip } from "@/lib/trip/filterDepartures";
 import { firstRideStep } from "@/lib/trip/firstRideStep";
 import { resolveNjStationCodeForTrip } from "@/lib/trip/resolveNjStation";
-import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { tripScheduleKey } from "@/lib/trip/tripScheduleKey";
 import type { PlannedRoute } from "@/lib/trip/types";
 import type { NjStation, ScheduleDeparture } from "@/lib/types";
@@ -47,22 +45,21 @@ export function TripDeparturePicker({
       .catch(() => setStations([]));
   }, []);
 
-  const boarding = useMemo(() => tripBoardingContext(route, fromName), [route, fromName]);
-
-  const stationCode = useMemo(() => {
-    if (!boarding) return null;
-    return resolveNjStationCodeForTrip(boarding.stationKey, boarding.stationName, stations);
-  }, [boarding, stations]);
-
   const firstLeg = firstRideStep(route);
+  const boardKey = firstLeg?.fromKey ?? fromKey;
+  const boardName = firstLeg?.fromName ?? fromName;
   const lineCode = firstLeg?.route ?? "";
+  const boardsAtFrom = boardKey === fromKey;
+
+  const stationCode = useMemo(
+    () => resolveNjStationCodeForTrip(boardKey, boardName, stations),
+    [boardKey, boardName, stations],
+  );
 
   const scheduleKey = useMemo(
     () =>
-      stationCode && lineCode && boarding
-        ? tripScheduleKey(stationCode, lineCode, boarding.stationKey)
-        : null,
-    [stationCode, lineCode, boarding],
+      stationCode && lineCode ? tripScheduleKey(stationCode, lineCode, boardKey || fromKey) : null,
+    [stationCode, lineCode, boardKey, fromKey],
   );
 
   const { data, error, isLoading, isValidating } = useSteddy(
@@ -72,17 +69,24 @@ export function TripDeparturePicker({
   );
 
   const items = useMemo(() => {
-    const list = data?.items ?? [];
-    if (!firstLeg) return list;
-    const onLeg = filterDeparturesForFirstLeg(list, firstLeg);
-    const walkMinutes = boarding?.walkMinutes ?? 0;
-    return filterDeparturesAfterArrival(onLeg, walkMinutes);
-  }, [data?.items, firstLeg, boarding?.walkMinutes]);
+    const board = data?.items ?? [];
+    const onLine = lineCode ? board.filter((i) => itemMatchesRoute(i, lineCode)) : board;
+    const towardTrip = filterDeparturesTowardTrip(onLine, route);
+    return sortUniqueDepartureRows(towardTrip);
+  }, [data?.items, lineCode, route]);
 
   useEffect(() => {
     if (!stationCode || isLoading) return;
     onDeparturesLoaded?.(items.length > 0);
   }, [stationCode, isLoading, items.length, onDeparturesLoaded]);
+
+  if (!firstLeg?.fromKey || !lineCode) {
+    return (
+      <p className="trip-departure-hint">
+        No rail departure list for this route — you can still start and use live map data.
+      </p>
+    );
+  }
 
   if (!stationCode) {
     return (
@@ -94,34 +98,18 @@ export function TripDeparturePicker({
     );
   }
 
-  if (!firstLeg || !lineCode) {
-    return (
-      <p className="trip-departure-hint">
-        No rail departure list for this route — you can still start and use live map data.
-      </p>
-    );
-  }
-
-  const boardingName = boarding?.stationName ?? fromName;
-  const walkMinutes = boarding?.walkMinutes ?? 0;
-  const originDiffers =
-    boarding != null &&
-    boarding.tripOriginName.trim().toLowerCase() !== boarding.stationName.trim().toLowerCase();
-
   return (
     <div className="trip-departure-picker">
       <p className="nav-sheet-preview-title">Pick a departure</p>
       <p className="trip-departure-sub">
-        {lineName(lineCode)} at {data?.stationName ?? boardingName}
+        {lineName(lineCode)} · {data?.stationName ?? boardName}
         {isValidating ? " · updating…" : ""}
       </p>
-      {walkMinutes > 0 && (
-        <p className="trip-departure-arrival-hint">
-          {originDiffers
-            ? `~${walkMinutes} min from ${boarding.tripOriginName} to ${boardingName}, then board.`
-            : `Showing trains after ~${walkMinutes} min to reach the platform.`}
-        </p>
-      )}
+      <p className="trip-departure-arrival-hint">
+        {boardsAtFrom
+          ? `Scheduled leave times from ${fromName} — not based on your phone location.`
+          : `First train boards at ${boardName} (~${fromName} is your trip start).`}
+      </p>
 
       {error != null && (
         <p className="panel-error">{error instanceof Error ? error.message : String(error)}</p>
@@ -136,10 +124,10 @@ export function TripDeparturePicker({
         )}
         {!isLoading && items.length === 0 && (
           <li className="train-list-empty">
-            <Typography tone="muted">No upcoming departures for this line.</Typography>
+            <Typography tone="muted">No departures returned for this station and line.</Typography>
           </li>
         )}
-        {items.slice(0, 24).map((item) => {
+        {items.map((item) => {
           const key = departureKey(item);
           const isOn = selected ? departureKey(selected) === key : false;
           return (
@@ -155,10 +143,7 @@ export function TripDeparturePicker({
                 </span>
                 <span className="trip-departure-option-body">
                   <span className="trip-departure-option-dest">{item.destination}</span>
-                  <span className="trip-departure-option-meta">
-                    Train #{item.trainId}
-                    {item.status ? ` · ${item.status}` : ""}
-                  </span>
+                  <span className="trip-departure-option-meta">{`Train #${item.trainId}`}</span>
                 </span>
                 <span className="trip-departure-option-track">
                   {item.track ? `Trk ${item.track}` : "—"}

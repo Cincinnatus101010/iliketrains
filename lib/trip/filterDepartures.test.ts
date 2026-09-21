@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ScheduleDeparture } from "@/lib/types";
-import { filterDeparturesAfterArrival } from "./filterDepartures";
+import { filterDeparturesAfterArrival, filterDeparturesTowardTrip } from "./filterDepartures";
+import type { PlannedRoute } from "./types";
 
 function dep(at: string): ScheduleDeparture {
   return {
@@ -15,6 +16,71 @@ function dep(at: string): ScheduleDeparture {
     secLate: 0,
   };
 }
+
+function madisonToHoboken(): PlannedRoute {
+  return {
+    steps: [
+      {
+        kind: "ride",
+        route: "MNE",
+        fromName: "Madison",
+        toName: "Hoboken",
+        color: "#f00",
+        fromKey: "njt:MA",
+        toKey: "njt:HB",
+        network: "njt",
+      },
+    ],
+    coordinatesLonLat: [],
+    stopCount: 2,
+  };
+}
+
+describe("filterDeparturesTowardTrip", () => {
+  it("drops opposite-direction trains on the same line", () => {
+    const items = [
+      {
+        ...dep("20-Sep-2026 10:19:00 PM"),
+        trainId: "1",
+        destination: "Hoboken",
+        lineAbbrev: "MNE",
+      },
+      {
+        ...dep("20-Sep-2026 10:31:00 PM"),
+        trainId: "2",
+        destination: "Dover",
+        lineAbbrev: "MNE",
+      },
+    ];
+    const out = filterDeparturesTowardTrip(items, madisonToHoboken());
+    expect(out.map((i) => i.trainId)).toEqual(["1"]);
+  });
+
+  it("keeps departures that are not clearly opposite direction", () => {
+    const items = [
+      {
+        ...dep("20-Sep-2026 10:19:00 PM"),
+        trainId: "1",
+        destination: "Hoboken",
+        lineAbbrev: "MNE",
+      },
+      {
+        ...dep("20-Sep-2026 10:25:00 PM"),
+        trainId: "3",
+        destination: "Summit",
+        lineAbbrev: "MNE",
+      },
+      {
+        ...dep("20-Sep-2026 10:31:00 PM"),
+        trainId: "2",
+        destination: "Dover",
+        lineAbbrev: "MNE",
+      },
+    ];
+    const out = filterDeparturesTowardTrip(items, madisonToHoboken());
+    expect(out.map((i) => i.trainId)).toEqual(["1", "3"]);
+  });
+});
 
 describe("filterDeparturesAfterArrival", () => {
   const now = Date.parse("20-Sep-2026 10:00:00 AM");
