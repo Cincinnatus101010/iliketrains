@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { type LineKey, lineKey, trainMatchesLineKey } from "@/lib/lineKey";
+import { type LineKey, lineKey } from "@/lib/lineKey";
 import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
+import { filterMapVisibleTrains, filterScopedTrains } from "@/lib/mapVisibleTrains";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import type { LiveTrain, MapScope } from "@/lib/types";
@@ -12,7 +13,6 @@ type UseLiveTrainFiltersOptions = {
   scope: MapScope;
   activeLine: LineKey | null;
   savedTrip: SavedTrip | null;
-  isTracking: boolean;
   trackingTrainId: string | null;
 };
 
@@ -21,31 +21,18 @@ export function useLiveTrainFilters({
   scope,
   activeLine,
   savedTrip,
-  isTracking,
   trackingTrainId,
 }: UseLiveTrainFiltersOptions) {
-  const scopedTrains = useMemo(() => {
-    if (scope === "mta") return allTrains.filter((t) => t.network === "mta");
-    if (scope === "njt") return allTrains.filter((t) => t.network === "njt");
-    return allTrains;
-  }, [allTrains, scope]);
+  const scopedTrains = useMemo(() => filterScopedTrains(allTrains, scope), [allTrains, scope]);
 
-  const visibleTrains = useMemo(() => {
-    if (isTracking) {
-      return allTrains.filter((t) => trainMatchesLineKey(t, activeLine));
-    }
-    let filtered = scopedTrains.filter((t) => trainMatchesLineKey(t, activeLine));
-    if (savedTrip) {
-      filtered = filtered.filter((t) => trainMatchesTrip(t, savedTrip));
-    }
-    return filtered;
-  }, [isTracking, allTrains, scopedTrains, activeLine, savedTrip]);
+  const visibleTrains = useMemo(
+    () => filterMapVisibleTrains(allTrains, scope, activeLine),
+    [allTrains, scope, activeLine],
+  );
 
-  const mapLiveCount = isTracking
-    ? visibleTrains.length
-    : savedTrip
-      ? visibleTrains.length
-      : scopedTrains.length;
+  const mapLiveCount = savedTrip
+    ? scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).length
+    : scopedTrains.length;
 
   const mapTrainsSignature = useMemo(() => trainPositionsSignature(visibleTrains), [visibleTrains]);
 

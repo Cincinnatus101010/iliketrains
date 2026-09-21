@@ -15,19 +15,19 @@ import {
   SUBWAY_TRAINS_KEY,
   SUBWAY_TRAINS_POLL_MS,
 } from "@/lib/liveFeedConfig";
+import { mergeLiveTrains } from "@/lib/mergeLiveTrains";
 import { pickLatestUpdatedAt } from "@/lib/pickLatestUpdatedAt";
 import type { LiveTrain } from "@/lib/types";
 
 type UseLiveTrainFeedsOptions = {
   trackingTrainId: string | null;
-  isTracking: boolean;
 };
 
 function forceRevalidate<T>(mutate: MutateFn<T>, fallback: T) {
   void mutate((current) => current ?? fallback, { revalidate: true });
 }
 
-export function useLiveTrainFeeds({ trackingTrainId, isTracking }: UseLiveTrainFeedsOptions) {
+export function useLiveTrainFeeds({ trackingTrainId }: UseLiveTrainFeedsOptions) {
   const followKey = trackingTrainId ? followedTrainKey(trackingTrainId) : null;
 
   const {
@@ -36,7 +36,7 @@ export function useLiveTrainFeeds({ trackingTrainId, isTracking }: UseLiveTrainF
     isLoading: njLoading,
     isValidating: njValidating,
     mutate: mutateNj,
-  } = useSteddy(isTracking ? null : NJ_TRAINS_KEY, fetchNjTrains, {
+  } = useSteddy(NJ_TRAINS_KEY, fetchNjTrains, {
     staleTime: NJ_TRAINS_POLL_MS,
     refetchInterval: NJ_TRAINS_POLL_MS,
   });
@@ -47,7 +47,7 @@ export function useLiveTrainFeeds({ trackingTrainId, isTracking }: UseLiveTrainF
     isLoading: subwayLoading,
     isValidating: subwayValidating,
     mutate: mutateSubway,
-  } = useSteddy(isTracking ? null : SUBWAY_TRAINS_KEY, fetchSubwayTrains, {
+  } = useSteddy(SUBWAY_TRAINS_KEY, fetchSubwayTrains, {
     staleTime: SUBWAY_TRAINS_POLL_MS,
     refetchInterval: SUBWAY_TRAINS_POLL_MS,
   });
@@ -55,7 +55,6 @@ export function useLiveTrainFeeds({ trackingTrainId, isTracking }: UseLiveTrainF
   const {
     data: followData,
     error: followError,
-    isLoading: followLoading,
     isValidating: followValidating,
     mutate: mutateFollow,
   } = useSteddy(followKey, fetchFollowedTrain, {
@@ -64,43 +63,38 @@ export function useLiveTrainFeeds({ trackingTrainId, isTracking }: UseLiveTrainF
   });
 
   const refresh = useCallback(() => {
-    if (trackingTrainId) {
-      forceRevalidate(mutateFollow, EMPTY_TRAINS_RESPONSE);
-      return;
-    }
     forceRevalidate(mutateNj, EMPTY_TRAINS_RESPONSE);
     forceRevalidate(mutateSubway, EMPTY_TRAINS_RESPONSE);
+    if (trackingTrainId) forceRevalidate(mutateFollow, EMPTY_TRAINS_RESPONSE);
   }, [trackingTrainId, mutateFollow, mutateNj, mutateSubway]);
 
-  const allTrains = useMemo((): LiveTrain[] => {
-    if (isTracking) return followData?.trains ?? [];
-    const nj = njData?.trains ?? [];
-    const subway = subwayData?.trains ?? [];
-    return [...subway, ...nj];
-  }, [isTracking, followData?.trains, njData?.trains, subwayData?.trains]);
+  const allTrains = useMemo(
+    (): LiveTrain[] =>
+      mergeLiveTrains(subwayData?.trains ?? [], njData?.trains ?? [], followData?.trains),
+    [followData?.trains, njData?.trains, subwayData?.trains],
+  );
 
   const apiErrors = useMemo(
     () =>
-      isTracking
-        ? collectFetchErrors(followData?.error, followError)
-        : collectFetchErrors(njData?.error, subwayData?.error, njError, subwayError),
-    [
-      isTracking,
-      followData?.error,
-      followError,
-      njData?.error,
-      subwayData?.error,
-      njError,
-      subwayError,
-    ],
+      collectFetchErrors(
+        njData?.error,
+        subwayData?.error,
+        njError,
+        subwayError,
+        followData?.error,
+        followError,
+      ),
+    [followData?.error, followError, njData?.error, subwayData?.error, njError, subwayError],
   );
 
-  const njConfigured = isTracking ? (followData?.configured ?? true) : (njData?.configured ?? true);
-  const loading = isTracking ? followLoading : njLoading || subwayLoading;
-  const validating = isTracking ? followValidating : njValidating || subwayValidating;
-  const updatedAt = isTracking
-    ? followData?.updatedAt
-    : pickLatestUpdatedAt(njData?.updatedAt, subwayData?.updatedAt);
+  const njConfigured = njData?.configured ?? true;
+  const loading = njLoading || subwayLoading;
+  const validating = njValidating || subwayValidating || followValidating;
+  const updatedAt = pickLatestUpdatedAt(
+    njData?.updatedAt,
+    subwayData?.updatedAt,
+    followData?.updatedAt,
+  );
 
   return {
     allTrains,
