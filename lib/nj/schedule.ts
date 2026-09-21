@@ -60,25 +60,34 @@ export async function fetchStationSchedule(
   }
 
   const url = `${config.apiBaseUrl.replace(/\/$/, "")}/getTrainSchedule19Rec`;
-  const response = await fetch(url, { method: "POST", body: form, cache: "no-store" });
-  if (!response.ok) {
+  try {
+    const response = await fetch(url, { method: "POST", body: form, cache: "no-store" });
+    if (!response.ok) {
+      return {
+        stationCode,
+        stationName: station.name,
+        items: [],
+        error: `Schedule HTTP ${response.status}`,
+      };
+    }
+
+    const body = (await response.json()) as RawSchedulePayload;
+    const items = (body.ITEMS ?? []).map(parseItem).filter((i) => i.trainId);
+
+    return {
+      stationCode,
+      stationName: body.STATIONNAME?.trim() ?? station.name,
+      items,
+      error: null,
+    };
+  } catch (e) {
     return {
       stationCode,
       stationName: station.name,
       items: [],
-      error: `Schedule HTTP ${response.status}`,
+      error: e instanceof Error ? e.message : "Schedule request failed",
     };
   }
-
-  const body = (await response.json()) as RawSchedulePayload;
-  const items = (body.ITEMS ?? []).map(parseItem).filter((i) => i.trainId);
-
-  return {
-    stationCode,
-    stationName: body.STATIONNAME?.trim() ?? station.name,
-    items,
-    error: null,
-  };
 }
 
 function normalizeTrainId(id: string): string {

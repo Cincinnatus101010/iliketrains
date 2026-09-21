@@ -4,7 +4,7 @@ import { Typography } from "@iantroisi/ui";
 import { useEffect, useMemo, useState } from "react";
 import { useSteddy } from "steddy";
 import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
-import { formatNjDateTime } from "@/lib/formatTime";
+import { formatNjScheduleDeparture } from "@/lib/formatTime";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { NJ_LINES } from "@/lib/nj/lines";
 import type { NjStation } from "@/lib/types";
@@ -135,7 +135,7 @@ export function SchedulePanel({ activeLine, defaultStationCode }: SchedulePanelP
           <li key={`${item.trainId}-${item.scheduledAt}`}>
             <div className="schedule-row">
               <div className="schedule-row-time">
-                <span className="schedule-time">{formatNjDateTime(item.scheduledAt)}</span>
+                <span className="schedule-time">{formatNjScheduleDeparture(item.scheduledAt)}</span>
                 <span className="schedule-status">{item.status}</span>
               </div>
               <div className="schedule-row-body">

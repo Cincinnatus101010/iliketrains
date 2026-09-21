@@ -1,7 +1,9 @@
 import type { ScheduleDeparture, ScheduleResponse } from "@/lib/types";
 import { config } from "./config";
-import { routeFromApiLine } from "./njRoutes";
+import { dedupeUpcomingDepartures } from "./dedupeDepartures";
+import { canonicalNjRoute, routeFromApiLine } from "./njRoutes";
 import { normalizePlatformTrack } from "./platformTrack";
+import { fetchStationSchedule } from "./schedule";
 import { fetchStationList } from "./stations";
 
 type RawDayItem = {
@@ -24,8 +26,10 @@ const dayScheduleCache = new Map<
   string,
   { at: number; items: ScheduleDeparture[]; stationName: string }
 >();
+const dayFailUntil = new Map<string, number>();
 /** API allows ~10 station-schedule calls/day — cache aggressively. */
 const DAY_CACHE_MS = 4 * 60 * 60 * 1000;
+const DAY_FAIL_COOLDOWN_MS = 15 * 60 * 1000;
 
 function parseDayItem(row: RawDayItem): ScheduleDeparture | null {
   const trainId = row.TRAIN_ID?.trim();
@@ -48,23 +52,18 @@ function parseDayItem(row: RawDayItem): ScheduleDeparture | null {
   };
 }
 
-function parseScheduleDate(raw: string): Date {
-  return new Date(raw.replace(/(\d{2})-(\w{3})-(\d{4})/, "$2 $1, $3"));
+export function itemMatchesRoute(item: ScheduleDeparture, routeCode: string): boolean {
+  const want = routeCode.toUpperCase();
+  const candidates = [item.lineAbbrev, item.lineCode, item.line];
+  return candidates.some((raw) => canonicalNjRoute(raw) === want);
 }
 
 function filterByRoute(items: ScheduleDeparture[], routeCode: string): ScheduleDeparture[] {
-  const want = routeCode.toUpperCase();
-  return items.filter((i) => i.lineAbbrev.toUpperCase() === want);
+  return items.filter((i) => itemMatchesRoute(i, routeCode));
 }
 
 function upcomingItems(items: ScheduleDeparture[]): ScheduleDeparture[] {
-  const cutoff = Date.now() - 2 * 60 * 1000;
-  return items
-    .filter((i) => parseScheduleDate(i.scheduledAt).getTime() >= cutoff)
-    .sort(
-      (a, b) =>
-        parseScheduleDate(a.scheduledAt).getTime() - parseScheduleDate(b.scheduledAt).getTime(),
-    );
+  return dedupeUpcomingDepartures(items);
 }
 
 export async function fetchStationDaySchedule(
@@ -94,33 +93,55 @@ export async function fetchStationDaySchedule(
     };
   }
 
+  const failedUntil = dayFailUntil.get(stationCode) ?? 0;
+  if (Date.now() < failedUntil) {
+    return fallbackToUpcoming(token, stationCode, station.name, routeCode);
+  }
+
   const form = new FormData();
   form.append("token", token);
   form.append("station", stationCode);
 
   const url = `${config.apiBaseUrl.replace(/\/$/, "")}/getStationSchedule`;
-  const response = await fetch(url, { method: "POST", body: form, cache: "no-store" });
-  if (!response.ok) {
+  try {
+    const response = await fetch(url, { method: "POST", body: form, cache: "no-store" });
+    if (!response.ok) {
+      dayFailUntil.set(stationCode, Date.now() + DAY_FAIL_COOLDOWN_MS);
+      return fallbackToUpcoming(token, stationCode, station.name, routeCode);
+    }
+
+    const body = (await response.json()) as RawDayStation[] | RawDayStation;
+    const block = Array.isArray(body) ? body[0] : body;
+    const rawItems = block?.ITEMS ?? [];
+    const stationName = block?.STATIONNAME?.trim() ?? station.name;
+    const allItems = rawItems.map(parseDayItem).filter((i): i is ScheduleDeparture => i != null);
+
+    dayScheduleCache.set(cacheKey, { at: Date.now(), items: allItems, stationName });
+
     return {
       stationCode,
-      stationName: station.name,
-      items: [],
-      error: `Station schedule HTTP ${response.status}`,
+      stationName,
+      items: upcomingItems(filterByRoute(allItems, routeCode)),
+      error: null,
     };
+  } catch {
+    dayFailUntil.set(stationCode, Date.now() + DAY_FAIL_COOLDOWN_MS);
+    return fallbackToUpcoming(token, stationCode, station.name, routeCode);
   }
+}
 
-  const body = (await response.json()) as RawDayStation[] | RawDayStation;
-  const block = Array.isArray(body) ? body[0] : body;
-  const rawItems = block?.ITEMS ?? [];
-  const stationName = block?.STATIONNAME?.trim() ?? station.name;
-  const allItems = rawItems.map(parseDayItem).filter((i): i is ScheduleDeparture => i != null);
-
-  dayScheduleCache.set(cacheKey, { at: Date.now(), items: allItems, stationName });
-
+async function fallbackToUpcoming(
+  token: string,
+  stationCode: string,
+  stationName: string,
+  routeCode: string,
+): Promise<ScheduleResponse> {
+  const upcoming = await fetchStationSchedule(token, stationCode, null);
+  const onLine = filterByRoute(upcoming.items, routeCode);
   return {
     stationCode,
-    stationName,
-    items: upcomingItems(filterByRoute(allItems, routeCode)),
-    error: null,
+    stationName: upcoming.stationName || stationName,
+    items: upcomingItems(onLine),
+    error: upcoming.error,
   };
 }
