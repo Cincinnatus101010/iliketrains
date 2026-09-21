@@ -3,6 +3,9 @@ import { getOrderedStopsForTrain } from "./routeStopOrder";
 
 const MAX_CACHE_ENTRIES = 64;
 
+/** Stable empty snapshot for useSyncExternalStore (must not allocate per read). */
+const EMPTY_ROUTE_STOPS: string[] = [];
+
 const routeStopsCache = new Map<string, string[]>();
 const routeStopsListeners = new Set<() => void>();
 const routeStopsInflight = new Map<string, Promise<string[]>>();
@@ -48,14 +51,14 @@ export function subscribeRouteStops(onChange: () => void): () => void {
 }
 
 export function getRouteStopsSnapshot(train: LiveTrain | null): string[] {
-  if (!train) return [];
+  if (!train) return EMPTY_ROUTE_STOPS;
   const key = routeStopsKey(train);
   const cached = routeStopsCache.get(key);
   if (cached) {
     touchCache(key, cached);
     return cached;
   }
-  return [];
+  return EMPTY_ROUTE_STOPS;
 }
 
 /** Clears cached route stop lists (for tests or graph reloads). */

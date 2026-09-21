@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   ensureRouteStopsLoaded,
   getRouteStopsSnapshot,
@@ -11,13 +11,14 @@ import { trainLiveSignature } from "@/lib/map/trainSyncKey";
 import type { LiveTrain } from "@/lib/types";
 
 export function useFollowUpcomingStops(train: LiveTrain | null): UpcomingStop[] {
+  useEffect(() => {
+    if (train) ensureRouteStopsLoaded(train);
+  }, [train]);
+
   const ordered = useSyncExternalStore(
-    (onChange) => {
-      if (train) ensureRouteStopsLoaded(train);
-      return subscribeRouteStops(onChange);
-    },
+    subscribeRouteStops,
     () => getRouteStopsSnapshot(train),
-    () => [],
+    () => getRouteStopsSnapshot(null),
   );
 
   const liveKey = train ? trainLiveSignature(train) : "";
