@@ -75,8 +75,10 @@ export function TripPlanPreview({
         </p>
       )}
 
-      <p className="nav-sheet-preview-title">Step-by-step</p>
-      <TripTimeline steps={route.steps} />
+      <details className="trip-plan-steps">
+        <summary className="trip-plan-steps-summary">Step-by-step directions</summary>
+        <TripTimeline steps={route.steps} />
+      </details>
       <p className="trip-plan-footnote">
         Walk times are estimates. Live train positions update in the map panel after you start.
       </p>

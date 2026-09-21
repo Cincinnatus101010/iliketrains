@@ -149,14 +149,14 @@ export function NavigationSheet({
   };
 
   return (
-    <div className="nav-sheet-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="nav-sheet glass"
+    <div className="trip-planner-backdrop" role="presentation" onClick={onClose}>
+      <aside
+        className="trip-planner-drawer glass"
         role="dialog"
         aria-label="Plan a trip"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="nav-sheet-head">
+        <header className="nav-sheet-head trip-planner-head">
           <div>
             <p className="panel-kicker">Navigate</p>
             <h2 className="panel-title">{sheetTitle}</h2>
@@ -172,65 +172,67 @@ export function NavigationSheet({
           </button>
         </header>
 
-        {loadingStations && stations.length === 0 && (
-          <p className="panel-meta">Loading stations…</p>
-        )}
+        <div className="trip-planner-scroll">
+          {loadingStations && stations.length === 0 && (
+            <p className="panel-meta">Loading stations…</p>
+          )}
 
-        <div className="trip-endpoints">
-          <StationPicker
-            label="From"
-            markerClass="trip-endpoint-marker--from"
-            value={fromKey}
-            stations={stations}
-            disabled={loadingStations}
-            onChange={(key) => {
-              setFromKey(key);
-              setChosenDeparture(null);
-              setError(null);
-            }}
-          />
-          <div className="trip-endpoints-connector" aria-hidden />
-          <StationPicker
-            label="To"
-            markerClass="trip-endpoint-marker--to"
-            value={toKey}
-            stations={stations}
-            disabled={loadingStations}
-            onChange={(key) => {
-              setToKey(key);
-              setChosenDeparture(null);
-              setError(null);
-            }}
-          />
-          <button
-            type="button"
-            className="trip-planner-swap trip-endpoints-swap"
-            title="Swap"
-            aria-label="Swap from and to"
-            disabled={!fromKey && !toKey}
-            onClick={swap}
-          >
-            ⇅
-          </button>
+          <div className="trip-endpoints">
+            <StationPicker
+              label="From"
+              markerClass="trip-endpoint-marker--from"
+              value={fromKey}
+              stations={stations}
+              disabled={loadingStations}
+              onChange={(key) => {
+                setFromKey(key);
+                setChosenDeparture(null);
+                setError(null);
+              }}
+            />
+            <div className="trip-endpoints-connector" aria-hidden />
+            <StationPicker
+              label="To"
+              markerClass="trip-endpoint-marker--to"
+              value={toKey}
+              stations={stations}
+              disabled={loadingStations}
+              onChange={(key) => {
+                setToKey(key);
+                setChosenDeparture(null);
+                setError(null);
+              }}
+            />
+            <button
+              type="button"
+              className="trip-planner-swap trip-endpoints-swap"
+              title="Swap"
+              aria-label="Swap from and to"
+              disabled={!fromKey && !toKey}
+              onClick={swap}
+            >
+              ⇅
+            </button>
+          </div>
+
+          {error && <p className="panel-error">{error}</p>}
+
+          {preview && fromKey && toKey && (
+            <div className="nav-sheet-preview trip-planner-preview">
+              <TripPlanPreview
+                fromKey={fromKey}
+                fromName={stationName(fromKey)}
+                toName={stationName(toKey)}
+                route={preview}
+                chosenDeparture={chosenDeparture}
+                onChooseDeparture={setChosenDeparture}
+                onDeparturesLoaded={setMustPickDeparture}
+              />
+            </div>
+          )}
         </div>
 
-        {error && <p className="panel-error">{error}</p>}
-
-        {preview && fromKey && toKey && (
-          <div className="nav-sheet-preview">
-            <TripPlanPreview
-              fromKey={fromKey}
-              fromName={stationName(fromKey)}
-              toName={stationName(toKey)}
-              route={preview}
-              chosenDeparture={chosenDeparture}
-              onChooseDeparture={setChosenDeparture}
-              onDeparturesLoaded={setMustPickDeparture}
-            />
-          </div>
-        )}
-
-        <div className="nav-sheet-footer">
+        <div className="nav-sheet-footer trip-planner-footer">
           <button
             type="button"
             className="nav-sheet-primary"
@@ -254,7 +256,7 @@ export function NavigationSheet({
             </button>
           )}
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

@@ -4,11 +4,15 @@ import { Typography } from "@iantroisi/ui";
 import { useEffect, useMemo, useState } from "react";
 import { useSteddy } from "steddy";
 import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
-import { formatNjDateTime } from "@/lib/formatTime";
+import { formatNjScheduleDeparture } from "@/lib/formatTime";
 import { lineName } from "@/lib/nj/lines";
-import { filterDeparturesForFirstLeg } from "@/lib/trip/filterDepartures";
+import {
+  filterDeparturesAfterArrival,
+  filterDeparturesForFirstLeg,
+} from "@/lib/trip/filterDepartures";
 import { firstRideStep } from "@/lib/trip/firstRideStep";
 import { resolveNjStationCodeForTrip } from "@/lib/trip/resolveNjStation";
+import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { tripScheduleKey } from "@/lib/trip/tripScheduleKey";
 import type { PlannedRoute } from "@/lib/trip/types";
 import type { NjStation, ScheduleDeparture } from "@/lib/types";
@@ -43,17 +47,22 @@ export function TripDeparturePicker({
       .catch(() => setStations([]));
   }, []);
 
-  const stationCode = useMemo(
-    () => resolveNjStationCodeForTrip(fromKey, fromName, stations),
-    [fromKey, fromName, stations],
-  );
+  const boarding = useMemo(() => tripBoardingContext(route, fromName), [route, fromName]);
+
+  const stationCode = useMemo(() => {
+    if (!boarding) return null;
+    return resolveNjStationCodeForTrip(boarding.stationKey, boarding.stationName, stations);
+  }, [boarding, stations]);
 
   const firstLeg = firstRideStep(route);
   const lineCode = firstLeg?.route ?? "";
 
   const scheduleKey = useMemo(
-    () => (stationCode && lineCode ? tripScheduleKey(stationCode, lineCode, fromKey) : null),
-    [stationCode, lineCode, fromKey],
+    () =>
+      stationCode && lineCode && boarding
+        ? tripScheduleKey(stationCode, lineCode, boarding.stationKey)
+        : null,
+    [stationCode, lineCode, boarding],
   );
 
   const { data, error, isLoading, isValidating } = useSteddy(
@@ -65,8 +74,10 @@ export function TripDeparturePicker({
   const items = useMemo(() => {
     const list = data?.items ?? [];
     if (!firstLeg) return list;
-    return filterDeparturesForFirstLeg(list, firstLeg);
-  }, [data?.items, firstLeg]);
+    const onLeg = filterDeparturesForFirstLeg(list, firstLeg);
+    const walkMinutes = boarding?.walkMinutes ?? 0;
+    return filterDeparturesAfterArrival(onLeg, walkMinutes);
+  }, [data?.items, firstLeg, boarding?.walkMinutes]);
 
   useEffect(() => {
     if (!stationCode || isLoading) return;
@@ -91,13 +102,26 @@ export function TripDeparturePicker({
     );
   }
 
+  const boardingName = boarding?.stationName ?? fromName;
+  const walkMinutes = boarding?.walkMinutes ?? 0;
+  const originDiffers =
+    boarding != null &&
+    boarding.tripOriginName.trim().toLowerCase() !== boarding.stationName.trim().toLowerCase();
+
   return (
     <div className="trip-departure-picker">
       <p className="nav-sheet-preview-title">Pick a departure</p>
       <p className="trip-departure-sub">
-        {lineName(lineCode)} from {data?.stationName ?? stationCode}
+        {lineName(lineCode)} at {data?.stationName ?? boardingName}
         {isValidating ? " · updating…" : ""}
       </p>
+      {walkMinutes > 0 && (
+        <p className="trip-departure-arrival-hint">
+          {originDiffers
+            ? `~${walkMinutes} min from ${boarding.tripOriginName} to ${boardingName}, then board.`
+            : `Showing trains after ~${walkMinutes} min to reach the platform.`}
+        </p>
+      )}
 
       {error != null && (
         <p className="panel-error">{error instanceof Error ? error.message : String(error)}</p>
@@ -127,7 +151,7 @@ export function TripDeparturePicker({
                 onClick={() => onSelect(item)}
               >
                 <span className="trip-departure-option-time">
-                  {formatNjDateTime(item.scheduledAt)}
+                  {formatNjScheduleDeparture(item.scheduledAt)}
                 </span>
                 <span className="trip-departure-option-body">
                   <span className="trip-departure-option-dest">{item.destination}</span>
