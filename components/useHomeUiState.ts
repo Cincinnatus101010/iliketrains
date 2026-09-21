@@ -22,6 +22,14 @@ export function useHomeUiState() {
   const closeLines = useCallback(() => setLinesOpen(false), []);
   const expandDock = useCallback(() => setBottomCollapsed(false), []);
 
+  const resetUi = useCallback(() => {
+    setScope("all");
+    setActiveLine(null);
+    setNavOpen(false);
+    setLinesOpen(false);
+    setBottomCollapsed(true);
+  }, []);
+
   return {
     scope,
     activeLine,
@@ -36,5 +44,6 @@ export function useHomeUiState() {
     bottomCollapsed,
     setBottomCollapsed,
     expandDock,
+    resetUi,
   };
 }

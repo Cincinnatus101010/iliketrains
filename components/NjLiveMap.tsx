@@ -26,6 +26,7 @@ type NjLiveMapProps = {
   tripHighlightKey: string;
   trackingTrainId: string | null;
   trackingTrainLiveKey: string | null;
+  overviewKey: number;
   onTrackTrain: (trainId: string) => void;
   onStopTracking: () => void;
 };
@@ -41,6 +42,7 @@ export function NjLiveMap({
   tripHighlightKey,
   trackingTrainId,
   trackingTrainLiveKey,
+  overviewKey,
   onTrackTrain,
   onStopTracking,
 }: NjLiveMapProps) {
@@ -50,6 +52,7 @@ export function NjLiveMap({
   const markersRef = useRef<TrainMarkerController | null>(null);
   const layersReady = useRef(false);
   const lastRouteFitKeyRef = useRef<string | null>(null);
+  const lastOverviewKeyRef = useRef(0);
   const trainsRef = useRef(trains);
   trainsRef.current = trains;
 
@@ -201,6 +204,16 @@ export function NjLiveMap({
       }
     } else {
       prevFollowIdRef.current = null;
+      if (overviewKey > 0 && overviewKey !== lastOverviewKeyRef.current) {
+        lastOverviewKeyRef.current = overviewKey;
+        map.easeTo({
+          center: CENTER,
+          zoom: ZOOM,
+          duration: 700,
+          padding,
+          essential: true,
+        });
+      }
     }
 
     ensurePlannedRouteLayer(map);
@@ -245,6 +258,7 @@ export function NjLiveMap({
     stableTrackTrain,
     plannedRoute,
     plannedRouteFitKey,
+    overviewKey,
   ]);
 
   return <div ref={containerRef} className="nj-map" aria-label="NYC and NJ live transit map" />;

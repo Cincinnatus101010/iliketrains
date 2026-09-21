@@ -1,13 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
 import { mapTopCountLabel } from "@/lib/mapTopCountLabel";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
-import { MapContextCard } from "./MapContextCard";
 import { MapPaneOverlays } from "./MapPaneOverlays";
 import { MapTopControls } from "./MapTopControls";
 import { useHomeSession } from "./useHomeSession";
@@ -41,6 +40,7 @@ export function HomeClient() {
     bottomCollapsed,
     setBottomCollapsed,
     expandDock,
+    resetUi,
   } = useHomeUiState();
 
   const {
@@ -53,8 +53,10 @@ export function HomeClient() {
     stopTracking,
   } = useHomeSession();
 
+  const [mapOverviewKey, setMapOverviewKey] = useState(0);
+
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
-    useLiveTrainFeeds({ trackingTrainId, isTracking });
+    useLiveTrainFeeds({ trackingTrainId });
 
   const {
     scopedTrains,
@@ -71,15 +73,31 @@ export function HomeClient() {
     scope,
     activeLine,
     savedTrip,
-    isTracking,
     trackingTrainId,
   });
 
   const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(allTrains, trackingTrainId);
 
+  const hadTripRef = useRef(false);
+  useEffect(() => {
+    if (savedTrip) {
+      hadTripRef.current = true;
+      return;
+    }
+    if (!hadTripRef.current) return;
+    hadTripRef.current = false;
+    resetUi();
+    setMapOverviewKey((key) => key + 1);
+  }, [savedTrip, resetUi]);
+
+  const handleFollowExpired = useCallback(() => {
+    if (savedTrip) endTrip();
+    else stopTracking();
+  }, [savedTrip, endTrip, stopTracking]);
+
   useMissedPollGrace(Boolean(trackingTrainId), Boolean(trackedTrain), {
     maxMisses: TRAIN_MISSED_FEED_POLLS,
-    onExpire: stopTracking,
+    onExpire: handleFollowExpired,
   });
 
   const handleTrackTrain = useCallback(
@@ -127,6 +145,7 @@ export function HomeClient() {
           tripHighlightKey={tripHighlightKey}
           trackingTrainId={trackingTrainId}
           trackingTrainLiveKey={trackedTrainLiveKey}
+          overviewKey={mapOverviewKey}
           onTrackTrain={handleTrackTrain}
           onStopTracking={stopTracking}
         />
@@ -136,17 +155,13 @@ export function HomeClient() {
           apiError={apiErrors[0] ?? null}
           navOpen={navOpen}
           onOpenNav={openNav}
-        >
-          {trackedTrain && (
-            <MapContextCard trackedTrain={trackedTrain} onStopTracking={stopTracking} />
-          )}
-        </MapPaneOverlays>
+        />
       </section>
 
       <section className="bottom-pane glass" aria-label="Live trains">
         {!bottomCollapsed && (
           <DockPanel
-            trains={isTracking ? allTrains : scopedTrains}
+            trains={scopedTrains}
             loading={loading}
             validating={validating}
             updatedAt={updatedAt}
@@ -158,6 +173,8 @@ export function HomeClient() {
             onTrackTrain={handleTrackTrain}
             onEditTrip={openNav}
             onEndTrip={endTrip}
+            onStopTracking={stopTracking}
+            trackedTrain={trackedTrain}
           />
         )}
       </section>
