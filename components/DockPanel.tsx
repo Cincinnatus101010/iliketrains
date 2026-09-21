@@ -6,6 +6,7 @@ import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { njStationCodeFromTripKey } from "@/lib/trip/tripLines";
 import type { LiveTrain } from "@/lib/types";
 import { SchedulePanel } from "./SchedulePanel";
+import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainPanel } from "./TrainPanel";
 import { TripLivePanel } from "./TripLivePanel";
 
@@ -24,6 +25,8 @@ type DockPanelProps = {
   onTrackTrain: (trainId: string) => void;
   onEditTrip: () => void;
   onEndTrip: () => void;
+  onStopTracking: () => void;
+  trackedTrain: LiveTrain | null;
 };
 
 export function DockPanel({
@@ -33,6 +36,8 @@ export function DockPanel({
   onTrackTrain,
   onEditTrip,
   onEndTrip,
+  onStopTracking,
+  trackedTrain,
   ...props
 }: DockPanelProps) {
   const [tab, setTab] = useState<DockTab>(() => (savedTrip ? "trip" : "live"));
@@ -84,14 +89,20 @@ export function DockPanel({
           onTrackTrain={onTrackTrain}
           onEditTrip={onEditTrip}
           onEndTrip={onEndTrip}
+          onStopTracking={onStopTracking}
         />
       ) : tab === "live" ? (
-        <TrainPanel
-          {...props}
-          highlightTrainIds={tripHighlightTrainIds}
-          trackingTrainId={trackingTrainId}
-          onTrackTrain={onTrackTrain}
-        />
+        <>
+          {!savedTrip && trackedTrain && (
+            <TrainFollowBlock train={trackedTrain} onStopTracking={onStopTracking} />
+          )}
+          <TrainPanel
+            {...props}
+            highlightTrainIds={tripHighlightTrainIds}
+            trackingTrainId={trackingTrainId}
+            onTrackTrain={onTrackTrain}
+          />
+        </>
       ) : (
         <SchedulePanel activeLine={props.activeLine} defaultStationCode={scheduleStationCode} />
       )}

@@ -1,11 +1,8 @@
-import type { ReactNode } from "react";
-
 type MapPaneOverlaysProps = {
   njConfigured: boolean;
   apiError: string | null;
   navOpen: boolean;
   onOpenNav: () => void;
-  children?: ReactNode;
 };
 
 export function MapPaneOverlays({
@@ -13,12 +10,9 @@ export function MapPaneOverlays({
   apiError,
   navOpen,
   onOpenNav,
-  children,
 }: MapPaneOverlaysProps) {
   return (
     <>
-      {children}
-
       {!njConfigured && (
         <div className="map-pane-alert glass" role="status">
           Set <code>NJTRANSIT_USERNAME</code> / <code>NJTRANSIT_PASSWORD</code> in{" "}

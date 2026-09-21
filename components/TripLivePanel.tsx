@@ -8,10 +8,9 @@ import { trackingTrainIdForTrip } from "@/lib/trip/tracking";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import { ensureRouteStats } from "@/lib/trip/tripStats";
 import type { LiveTrain } from "@/lib/types";
-import { FollowStopList } from "./FollowStopList";
+import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainListRow } from "./TrainListRow";
 import { TripTimeline } from "./TripTimeline";
-import { useFollowUpcomingStops } from "./useFollowUpcomingStops";
 
 type TripLivePanelProps = {
   trip: SavedTrip;
@@ -20,6 +19,7 @@ type TripLivePanelProps = {
   onTrackTrain: (trainId: string) => void;
   onEditTrip: () => void;
   onEndTrip: () => void;
+  onStopTracking: () => void;
 };
 
 export function TripLivePanel({
@@ -29,6 +29,7 @@ export function TripLivePanel({
   onTrackTrain,
   onEditTrip,
   onEndTrip,
+  onStopTracking,
 }: TripLivePanelProps) {
   const trackingTrainId = trackingTrainIdForTrip(trip);
   const route = ensureRouteStats(trip.route);
@@ -43,7 +44,6 @@ export function TripLivePanel({
   const listTrains = trackingTrainId ? sorted.filter((t) => t.id === trackingTrainId) : sorted;
 
   const trackedTrain = trackingTrainId ? (listTrains[0] ?? null) : null;
-  const upcoming = useFollowUpcomingStops(trackedTrain);
 
   return (
     <div className="train-panel-inner train-panel-inner--bottom">
@@ -53,7 +53,7 @@ export function TripLivePanel({
           className="trip-dock-action trip-dock-action--end"
           onClick={onEndTrip}
         >
-          End
+          End trip
         </button>
         <div className="trip-dock-head-body">
           <p className="panel-kicker">Active trip</p>
@@ -90,11 +90,7 @@ export function TripLivePanel({
         </div>
       )}
 
-      {trackedTrain && upcoming.length > 0 && (
-        <div className="trip-follow-stops">
-          <FollowStopList stops={upcoming} />
-        </div>
-      )}
+      {trackedTrain && <TrainFollowBlock train={trackedTrain} onStopTracking={onStopTracking} />}
 
       <p className="panel-kicker trip-live-trains-label">
         {trackingTrainId ? "Your train" : "On your route now"}
