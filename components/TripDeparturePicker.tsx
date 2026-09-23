@@ -1,24 +1,16 @@
 "use client";
 
 import { Typography } from "@iantroisi/ui";
-import { useEffect, useMemo, useState } from "react";
-import { useSteddy } from "steddy";
-import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
+import { useEffect } from "react";
 import { formatNjScheduleDeparture } from "@/lib/formatTime";
-import { sortUniqueDepartureRows } from "@/lib/nj/dedupeDepartures";
 import { lineName } from "@/lib/nj/lines";
-import { itemMatchesRoute } from "@/lib/nj/stationSchedule";
-import { filterDeparturesTowardTrip } from "@/lib/trip/filterDepartures";
-import { firstRideStep } from "@/lib/trip/firstRideStep";
-import { resolveNjStationCodeForTrip } from "@/lib/trip/resolveNjStation";
-import { tripScheduleKey } from "@/lib/trip/tripScheduleKey";
-import type { PlannedRoute } from "@/lib/trip/types";
-import type { NjStation, ScheduleDeparture } from "@/lib/types";
+import type { ScheduleDeparture, TripBoardingSchedule } from "@/types";
 
 type TripDeparturePickerProps = {
   fromKey: string;
   fromName: string;
-  route: PlannedRoute;
+  boarding: TripBoardingSchedule | null;
+  loading?: boolean;
   selected: ScheduleDeparture | null;
   onSelect: (item: ScheduleDeparture) => void;
   onDeparturesLoaded?: (hasChoices: boolean) => void;
@@ -31,56 +23,23 @@ function departureKey(item: ScheduleDeparture): string {
 export function TripDeparturePicker({
   fromKey,
   fromName,
-  route,
+  boarding,
+  loading = false,
   selected,
   onSelect,
   onDeparturesLoaded,
 }: TripDeparturePickerProps) {
-  const [stations, setStations] = useState<NjStation[]>([]);
+  const items = boarding?.departures ?? [];
+  const lineCode = boarding?.lineCode ?? "";
+  const boardName = boarding?.boarding.stationName ?? fromName;
+  const boardsAtFrom = boarding?.boarding.stationKey === fromKey;
 
   useEffect(() => {
-    void fetch("/api/stations")
-      .then((r) => r.json())
-      .then((body: { stations: NjStation[] }) => setStations(body.stations ?? []))
-      .catch(() => setStations([]));
-  }, []);
-
-  const firstLeg = firstRideStep(route);
-  const boardKey = firstLeg?.fromKey ?? fromKey;
-  const boardName = firstLeg?.fromName ?? fromName;
-  const lineCode = firstLeg?.route ?? "";
-  const boardsAtFrom = boardKey === fromKey;
-
-  const stationCode = useMemo(
-    () => resolveNjStationCodeForTrip(boardKey, boardName, stations),
-    [boardKey, boardName, stations],
-  );
-
-  const scheduleKey = useMemo(
-    () =>
-      stationCode && lineCode ? tripScheduleKey(stationCode, lineCode, boardKey || fromKey) : null,
-    [stationCode, lineCode, boardKey, fromKey],
-  );
-
-  const { data, error, isLoading, isValidating } = useSteddy(
-    scheduleKey,
-    fetchStationScheduleClient,
-    { staleTime: 60_000 },
-  );
-
-  const items = useMemo(() => {
-    const board = data?.items ?? [];
-    const onLine = lineCode ? board.filter((i) => itemMatchesRoute(i, lineCode)) : board;
-    const towardTrip = filterDeparturesTowardTrip(onLine, route);
-    return sortUniqueDepartureRows(towardTrip);
-  }, [data?.items, lineCode, route]);
-
-  useEffect(() => {
-    if (!stationCode || isLoading) return;
+    if (loading || !boarding) return;
     onDeparturesLoaded?.(items.length > 0);
-  }, [stationCode, isLoading, items.length, onDeparturesLoaded]);
+  }, [boarding, items.length, loading, onDeparturesLoaded]);
 
-  if (!firstLeg?.fromKey || !lineCode) {
+  if (!boarding?.boarding || !lineCode) {
     return (
       <p className="trip-departure-hint">
         No rail departure list for this route — you can still start and use live map data.
@@ -88,13 +47,9 @@ export function TripDeparturePicker({
     );
   }
 
-  if (!stationCode) {
+  if (boarding.stationCode == null && !loading) {
     return (
-      <p className="trip-departure-hint">
-        {stations.length === 0
-          ? "Loading station list…"
-          : "Could not match this stop to NJ schedule data."}
-      </p>
+      <p className="trip-departure-hint">{boarding.scheduleError ?? "Schedule unavailable."}</p>
     );
   }
 
@@ -102,29 +57,25 @@ export function TripDeparturePicker({
     <div className="trip-departure-picker">
       <p className="nav-sheet-preview-title">Pick a departure</p>
       <p className="trip-departure-sub">
-        {lineName(lineCode)} · {data?.stationName ?? boardName}
-        {isValidating ? " · updating…" : ""}
+        {lineName(lineCode)} · {boarding.stationName || boardName}
       </p>
       <p className="trip-departure-arrival-hint">
         {boardsAtFrom
-          ? `Scheduled leave times from ${fromName} — not based on your phone location.`
+          ? `Trains at ${boardName} that serve your trip — scheduled time and track.`
           : `First train boards at ${boardName} (~${fromName} is your trip start).`}
       </p>
 
-      {error != null && (
-        <p className="panel-error">{error instanceof Error ? error.message : String(error)}</p>
-      )}
-      {data?.error && <p className="panel-error">{data.error}</p>}
+      {boarding.scheduleError && <p className="panel-error">{boarding.scheduleError}</p>}
 
       <ul className="trip-departure-list" aria-label="Choose a departure">
-        {isLoading && items.length === 0 && (
+        {loading && items.length === 0 && (
           <li className="train-list-empty">
             <Typography tone="muted">Loading schedule…</Typography>
           </li>
         )}
-        {!isLoading && items.length === 0 && (
+        {!loading && items.length === 0 && (
           <li className="train-list-empty">
-            <Typography tone="muted">No departures returned for this station and line.</Typography>
+            <Typography tone="muted">No upcoming departures for this stop and line.</Typography>
           </li>
         )}
         {items.map((item) => {

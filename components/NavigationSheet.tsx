@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { fetchTripPlan } from "@/lib/fetchTripPlan";
 import { parseLineKey } from "@/lib/lineKey";
-import { listPlanStations, loadTripGraph } from "@/lib/trip/loadGraph";
-import { planTrip } from "@/lib/trip/planTrip";
+import { listPlanStations } from "@/lib/trip/loadGraph";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { ensureRouteStats } from "@/lib/trip/tripStats";
-import type { PlannedRoute } from "@/lib/trip/types";
-import type { ScheduleDeparture } from "@/lib/types";
+import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 import { StationPicker } from "./StationPicker";
 import { TripPlanPreview } from "./TripPlanPreview";
 
@@ -33,6 +32,7 @@ export function NavigationSheet({
   const [toKey, setToKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PlannedRoute | null>(null);
+  const [boarding, setBoarding] = useState<TripBoardingSchedule | null>(null);
   const [loadingStations, setLoadingStations] = useState(false);
   const [planning, setPlanning] = useState(false);
   const [chosenDeparture, setChosenDeparture] = useState<ScheduleDeparture | null>(null);
@@ -52,6 +52,7 @@ export function NavigationSheet({
       setFromKey(initialTrip.fromKey);
       setToKey(initialTrip.toKey);
       setPreview(ensureRouteStats(initialTrip.route));
+      setBoarding(null);
       setChosenDeparture(initialTrip.chosenDeparture ?? null);
       setError(null);
       return;
@@ -59,6 +60,7 @@ export function NavigationSheet({
     setFromKey("");
     setToKey("");
     setPreview(null);
+    setBoarding(null);
     setChosenDeparture(null);
     setError(null);
   }, [open, initialTrip]);
@@ -72,26 +74,30 @@ export function NavigationSheet({
     }
 
     let cancelled = false;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setPlanning(true);
       setError(null);
-      void loadTripGraph()
-        .then((graph) => {
+      void fetchTripPlan(fromKey, toKey, controller.signal)
+        .then((body) => {
           if (cancelled) return;
-          if (!graph) {
-            setError("Route data missing.");
+          if (body.error && !body.route) {
+            setError(body.error);
             setPreview(null);
+            setBoarding(null);
             return;
           }
-          const route = planTrip(graph, fromKey, toKey);
-          if (!route) {
-            setError("No route found between those stations.");
-            setPreview(null);
-            return;
-          }
-          setPreview(route);
+          setPreview(body.route);
+          setBoarding(body.boarding);
           setChosenDeparture(null);
           setMustPickDeparture(false);
+          if (body.error) setError(body.error);
+        })
+        .catch((e: unknown) => {
+          if (cancelled || controller.signal.aborted) return;
+          setError(e instanceof Error ? e.message : "Could not plan trip.");
+          setPreview(null);
+          setBoarding(null);
         })
         .finally(() => {
           if (!cancelled) setPlanning(false);
@@ -100,6 +106,7 @@ export function NavigationSheet({
 
     return () => {
       cancelled = true;
+      controller.abort();
       window.clearTimeout(timer);
     };
   }, [open, fromKey, toKey]);
@@ -224,6 +231,8 @@ export function NavigationSheet({
                 fromName={stationName(fromKey)}
                 toName={stationName(toKey)}
                 route={preview}
+                boarding={boarding}
+                scheduleLoading={planning}
                 chosenDeparture={chosenDeparture}
                 onChooseDeparture={setChosenDeparture}
                 onDeparturesLoaded={setMustPickDeparture}

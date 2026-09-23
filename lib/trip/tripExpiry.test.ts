@@ -15,7 +15,7 @@ function trip(savedAt: string): SavedTrip {
     fromName: "A",
     toName: "B",
     savedAt,
-    route: { steps: [], stopCount: 0 },
+    route: { steps: [], stopCount: 0, coordinatesLonLat: [] },
   };
 }
 

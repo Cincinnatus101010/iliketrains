@@ -3,8 +3,7 @@
 import { parseLineKey } from "@/lib/lineKey";
 import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
 import { tripConnectionLabel, tripStatsHeadline } from "@/lib/trip/tripStats";
-import type { PlannedRoute } from "@/lib/trip/types";
-import type { ScheduleDeparture } from "@/lib/types";
+import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 import { TripDeparturePicker } from "./TripDeparturePicker";
 import { TripTimeline } from "./TripTimeline";
 
@@ -13,6 +12,8 @@ type TripPlanPreviewProps = {
   fromName: string;
   toName: string;
   route: PlannedRoute;
+  boarding: TripBoardingSchedule | null;
+  scheduleLoading?: boolean;
   chosenDeparture: ScheduleDeparture | null;
   onChooseDeparture: (item: ScheduleDeparture) => void;
   onDeparturesLoaded?: (hasChoices: boolean) => void;
@@ -23,6 +24,8 @@ export function TripPlanPreview({
   fromName,
   toName,
   route,
+  boarding,
+  scheduleLoading = false,
   chosenDeparture,
   onChooseDeparture,
   onDeparturesLoaded,
@@ -73,7 +76,8 @@ export function TripPlanPreview({
         <TripDeparturePicker
           fromKey={fromKey}
           fromName={fromName}
-          route={route}
+          boarding={boarding}
+          loading={scheduleLoading}
           selected={chosenDeparture}
           onSelect={onChooseDeparture}
           onDeparturesLoaded={onDeparturesLoaded}

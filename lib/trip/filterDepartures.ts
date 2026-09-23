@@ -1,8 +1,7 @@
 import { parseNjScheduleAtMs } from "@/lib/formatTime";
 import { dedupeUpcomingDepartures } from "@/lib/nj/dedupeDepartures";
-import type { ScheduleDeparture } from "@/lib/types";
+import type { PlannedRoute, RouteStep, ScheduleDeparture } from "@/types";
 import { firstRideStep } from "./firstRideStep";
-import type { PlannedRoute, RouteStep } from "./types";
 
 const SCHEDULE_GRACE_MS = 2 * 60 * 1000;
 
@@ -54,11 +53,12 @@ function destinationMatchesStop(destRaw: string, stopNorm: string): boolean {
 }
 
 function tripHeadsToNySide(targetNorm: string): boolean {
+  if (targetNorm.includes("newark broad")) return false;
   return (
     targetNorm.includes("hoboken") ||
     targetNorm.includes("new york") ||
     targetNorm.includes("secaucus") ||
-    targetNorm.includes("newark")
+    targetNorm.includes("newark penn")
   );
 }
 
@@ -87,8 +87,15 @@ function isLikelyOppositeDirection(destRaw: string, firstLeg: RouteStep): boolea
         dest.includes("lake hopatcong")
       );
     }
-    if (tripHeadsToMorrisWest(target)) {
-      return dest.includes("hoboken") || dest.includes("new york");
+    if (tripHeadsToMorrisWest(target) || target.includes("newark broad")) {
+      return (
+        dest.includes("hoboken") ||
+        dest.includes("new york") ||
+        dest.includes("dover") ||
+        dest.includes("hackettstown") ||
+        dest.includes("gladstone") ||
+        dest.includes("netcong")
+      );
     }
   }
 

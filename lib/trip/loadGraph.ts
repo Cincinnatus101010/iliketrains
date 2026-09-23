@@ -1,10 +1,7 @@
-type GraphNode = { name: string; lat: number; lon: number; network: string };
-type GraphEdge = { from: string; to: string; route: string };
+import type { TripGraph } from "@/types";
+import { parseTripGraphRaw } from "./parseTripGraph";
 
-export type TripGraph = {
-  nodes: Map<string, GraphNode>;
-  adjacency: Map<string, GraphEdge[]>;
-};
+export type { TripGraph };
 
 let cached: TripGraph | null = null;
 let inflight: Promise<TripGraph | null> | null = null;
@@ -17,20 +14,8 @@ export async function loadTripGraph(): Promise<TripGraph | null> {
     try {
       const res = await fetch("/data/transit-graph.json");
       if (!res.ok) return null;
-      const raw = (await res.json()) as {
-        nodes: Record<string, GraphNode>;
-        edges: GraphEdge[];
-      };
-
-      const nodes = new Map(Object.entries(raw.nodes ?? {}));
-      const adjacency = new Map<string, GraphEdge[]>();
-      for (const e of raw.edges ?? []) {
-        const list = adjacency.get(e.from) ?? [];
-        list.push(e);
-        adjacency.set(e.from, list);
-      }
-
-      cached = { nodes, adjacency };
+      const raw = (await res.json()) as Parameters<typeof parseTripGraphRaw>[0];
+      cached = parseTripGraphRaw(raw);
       return cached;
     } catch {
       return null;
