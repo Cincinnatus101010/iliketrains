@@ -1,5 +1,5 @@
 import type { Key } from "steddy";
-import type { ScheduleResponse } from "./types";
+import type { ScheduleResponse } from "@/types";
 
 export async function fetchStationScheduleClient(
   key: Key,

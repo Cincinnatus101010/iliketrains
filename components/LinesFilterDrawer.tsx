@@ -1,7 +1,7 @@
 "use client";
 
 import type { LineKey } from "@/lib/lineKey";
-import type { MapScope } from "@/lib/types";
+import type { MapScope } from "@/types";
 import { LineLegend } from "./LineLegend";
 
 type LinesFilterDrawerProps = {

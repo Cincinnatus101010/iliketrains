@@ -1,7 +1,7 @@
 import maplibregl from "maplibre-gl";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { trainMarkerBadge, trainMarkerTitle, trainPopupHtml } from "@/lib/trainDisplay";
-import type { LiveTrain, Network } from "@/lib/types";
+import type { LiveTrain, Network } from "@/types";
 import { shortestTrackGap, type TrackEngine, wrapTrackDist } from "./trackEngine";
 import { trainVisualKey } from "./trainSyncKey";
 

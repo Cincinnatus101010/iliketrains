@@ -8,7 +8,7 @@ import {
 } from "@/lib/follow/routeStopsCache";
 import { type UpcomingStop, upcomingStopsForTrain } from "@/lib/follow/upcomingStops";
 import { trainLiveSignature } from "@/lib/map/trainSyncKey";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 
 export function useFollowUpcomingStops(train: LiveTrain | null): UpcomingStop[] {
   useEffect(() => {

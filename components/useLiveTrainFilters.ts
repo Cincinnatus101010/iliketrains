@@ -6,7 +6,7 @@ import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
 import { filterMapVisibleTrains, filterScopedTrains } from "@/lib/mapVisibleTrains";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
-import type { LiveTrain, MapScope } from "@/lib/types";
+import type { LiveTrain, MapScope } from "@/types";
 
 type UseLiveTrainFiltersOptions = {
   allTrains: LiveTrain[];

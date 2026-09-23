@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ScheduleDeparture } from "@/lib/types";
+import type { ScheduleDeparture } from "@/types";
 import {
   dedupeDeparturesByTrain,
   dedupeUpcomingDepartures,

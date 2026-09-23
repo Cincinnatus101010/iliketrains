@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 
 const getOrderedStopsForTrain = vi.fn<(train: LiveTrain) => Promise<string[]>>();
 

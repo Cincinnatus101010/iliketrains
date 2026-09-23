@@ -1,23 +1,10 @@
-import type { ScheduleDeparture } from "@/lib/types";
+import type { PlannedRoute, SavedTrip, TripTrackingState } from "@/types";
 import { normalizePersistedTracking } from "./tracking";
-import type { TripTrackingState } from "./trackingState";
 import { parseTripTrackingState, trackingStateFromLegacyId } from "./trackingState";
 import { activeTripOrNull } from "./tripExpiry";
 import { ensureRouteStats, tripStatsHeadline } from "./tripStats";
-import type { PlannedRoute } from "./types";
 
-export type SavedTrip = {
-  fromKey: string;
-  toKey: string;
-  fromName: string;
-  toName: string;
-  route: PlannedRoute;
-  savedAt: string;
-  /** NJ (or first-leg) departure chosen when starting from the schedule list. */
-  chosenDeparture?: ScheduleDeparture | null;
-  /** How onboard tracking is resolved (auto uses chosen departure when possible). */
-  tracking?: TripTrackingState;
-};
+export type { SavedTrip };
 
 const STORAGE_KEY = "iliketrains.savedTrip.v1";
 

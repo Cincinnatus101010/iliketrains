@@ -2,7 +2,7 @@
 
 import { formatWalkDistance } from "@/lib/trip/geo";
 import { tripLineLabel } from "@/lib/trip/lineLabel";
-import type { RouteStep } from "@/lib/trip/types";
+import type { RouteStep } from "@/types";
 
 type TripTimelineProps = {
   steps: RouteStep[];

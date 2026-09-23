@@ -1,5 +1,5 @@
 import { loadTripGraph, type TripGraph } from "@/lib/trip/loadGraph";
-import type { LiveTrain, Network } from "@/lib/types";
+import type { LiveTrain, Network } from "@/types";
 import { sortStopsAlongCoords } from "./trackProject";
 
 const routeStopsCache = new Map<string, string[]>();

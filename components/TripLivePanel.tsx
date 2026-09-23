@@ -8,7 +8,7 @@ import { tripSummaryLabel } from "@/lib/trip/savedTrip";
 import { trackingTrainIdForTrip } from "@/lib/trip/tracking";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import { ensureRouteStats, tripConnectionLabel } from "@/lib/trip/tripStats";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainListRow } from "./TrainListRow";
 import { TripTimeline } from "./TripTimeline";

@@ -1,4 +1,4 @@
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 
 /** Compact signature so map markers skip sync when positions are unchanged. */
 export function trainPositionsSignature(trains: LiveTrain[]): string {

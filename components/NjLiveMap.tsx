@@ -7,8 +7,8 @@ import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { observeMapContainerResize } from "@/lib/map/mapResize";
 import { TrackEngine } from "@/lib/map/trackEngine";
 import { TrainMarkerController } from "@/lib/map/trainMarkerController";
-import type { LiveTrain } from "@/lib/types";
 import { useStableEvent } from "@/lib/useStableEvent";
+import type { LiveTrain } from "@/types";
 
 const CENTER: [number, number] = [-74.02, 40.72];
 const ZOOM = 9.1;

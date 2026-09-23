@@ -1,4 +1,4 @@
-import type { LiveTrain, ScheduleDeparture } from "@/lib/types";
+import type { LiveTrain, ScheduleDeparture } from "@/types";
 import { normalizePlatformTrack } from "./platformTrack";
 import { fetchStationSchedule, matchPlatformTrack } from "./schedule";
 import { fetchStationList, resolveStationCode } from "./stations";

@@ -1,6 +1,6 @@
 import { displayLineName } from "@/lib/displayLine";
 import { formatNjDateTime } from "@/lib/formatTime";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 
 function njAtStation(train: LiveTrain): boolean {
   if (train.atStation === true) return true;

@@ -2,7 +2,9 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-export type PlanStation = { key: string; name: string; network: "mta" | "njt" };
+import type { PlanStation } from "@/types";
+
+export type { PlanStation };
 
 type StationPickerProps = {
   label: string;

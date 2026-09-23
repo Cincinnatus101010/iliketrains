@@ -1,4 +1,4 @@
-import type { ScheduleResponse } from "@/lib/types";
+import type { ScheduleResponse } from "@/types";
 import { config, njConfigured } from "./config";
 import { fetchStationSchedule } from "./schedule";
 import { fetchStationDaySchedule } from "./stationSchedule";

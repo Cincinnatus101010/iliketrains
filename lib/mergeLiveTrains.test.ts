@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { LiveTrain } from "@/types";
 import { mergeLiveTrains } from "./mergeLiveTrains";
-import type { LiveTrain } from "./types";
 
 function train(partial: Partial<LiveTrain> & Pick<LiveTrain, "id">): LiveTrain {
   return {

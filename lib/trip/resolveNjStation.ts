@@ -1,5 +1,5 @@
 import { parseLineKey } from "@/lib/lineKey";
-import type { NjStation } from "@/lib/types";
+import type { NjStation } from "@/types";
 
 function normalize(name: string): string {
   return name

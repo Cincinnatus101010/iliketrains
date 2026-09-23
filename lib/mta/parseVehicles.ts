@@ -1,4 +1,4 @@
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 import { subwayLineName } from "./lines";
 import { getAnchorStopId, getStopName, tryGetStopCoordinates } from "./stopLookup";
 import { colorForSubwayRoute } from "./subwayRoutes";

@@ -1,4 +1,4 @@
-import type { TrainsResponse } from "@/lib/types";
+import type { TrainsResponse } from "@/types";
 import { config, njConfigured } from "./config";
 import { enrichLiveTrainsWithTracks } from "./enrichTracks";
 import { withTrainsCache } from "./getTrainsCache";

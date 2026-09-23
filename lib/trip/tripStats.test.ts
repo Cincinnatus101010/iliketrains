@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { PlannedRoute } from "@/types";
 import { buildTripStats, tripConnectionLabel } from "./tripStats";
-import type { PlannedRoute } from "./types";
 
 function route(steps: PlannedRoute["steps"]): PlannedRoute {
   return { steps, coordinatesLonLat: [], stopCount: 2 };

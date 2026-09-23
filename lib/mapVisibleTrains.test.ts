@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { LiveTrain } from "@/types";
 import { filterMapVisibleTrains } from "./mapVisibleTrains";
-import type { LiveTrain } from "./types";
 
 function train(
   partial: Partial<LiveTrain> & Pick<LiveTrain, "id" | "network" | "route">,

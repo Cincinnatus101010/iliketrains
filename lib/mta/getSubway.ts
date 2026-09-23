@@ -1,4 +1,4 @@
-import type { SubwayResponse } from "@/lib/types";
+import type { SubwayResponse } from "@/types";
 import { getMtaFeedEntities } from "./feedCache";
 import { parseSubwayFeed } from "./parseVehicles";
 

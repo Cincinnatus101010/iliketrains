@@ -3,7 +3,7 @@
 import { FollowStopList } from "@/components/FollowStopList";
 import { useFollowUpcomingStops } from "@/components/useFollowUpcomingStops";
 import { trainFollowPrimary, trainFollowSecondary } from "@/lib/trainDisplay";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 
 type TrainFollowBlockProps = {
   train: LiveTrain;

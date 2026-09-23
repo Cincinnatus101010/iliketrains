@@ -1,20 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { readSavedTrip, type SavedTrip, writeSavedTrip } from "@/lib/trip/savedTrip";
+import { readSavedTrip, writeSavedTrip } from "@/lib/trip/savedTrip";
 import {
   effectiveTrackingTrainId,
   prepareTripForStart,
   tripWithTracking,
 } from "@/lib/trip/tracking";
 import { isTripExpired, savedAtIsoMs, TRIP_MAX_AGE_MS } from "@/lib/trip/tripExpiry";
+import type { HomeSession, SavedTrip } from "@/types";
 
-/** In-memory home screen session (trip persistence + map-only train tracking). */
-export type HomeSession = {
-  trip: SavedTrip | null;
-  /** Follow id when there is no saved trip; cleared when a trip starts. */
-  ephemeralTrackingId: string | null;
-};
+export type { HomeSession };
 
 function emptySession(): HomeSession {
   return { trip: null, ephemeralTrackingId: null };

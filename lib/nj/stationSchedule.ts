@@ -1,5 +1,5 @@
 import { parseNjScheduleAtMs } from "@/lib/formatTime";
-import type { ScheduleDeparture, ScheduleResponse } from "@/lib/types";
+import type { ScheduleDeparture, ScheduleResponse } from "@/types";
 import { config } from "./config";
 import { sortUniqueDepartureRows } from "./dedupeDepartures";
 import { canonicalNjRoute, routeFromApiLine } from "./njRoutes";

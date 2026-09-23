@@ -1,6 +1,6 @@
+import type { PlannedRoute, RouteStep, TripStats, TripStatsLine } from "@/types";
 import { tripLineLabel } from "./lineLabel";
 import { tripTransferStopNames } from "./routeDisplaySteps";
-import type { PlannedRoute, RouteStep, TripStats, TripStatsLine } from "./types";
 
 export function buildTripStats(steps: RouteStep[], stopCount: number): TripStats {
   let rideCount = 0;

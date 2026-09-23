@@ -3,7 +3,7 @@
 import { type LineKey, lineKey } from "@/lib/lineKey";
 import { SUBWAY_LINES } from "@/lib/mta/lines";
 import { NJ_LINES } from "@/lib/nj/lines";
-import type { MapScope } from "@/lib/types";
+import type { MapScope } from "@/types";
 
 type LineLegendProps = {
   scope: MapScope;

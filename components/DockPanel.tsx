@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { LineKey } from "@/lib/lineKey";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { njStationCodeFromTripKey } from "@/lib/trip/tripLines";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 import { SchedulePanel } from "./SchedulePanel";
 import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainPanel } from "./TrainPanel";

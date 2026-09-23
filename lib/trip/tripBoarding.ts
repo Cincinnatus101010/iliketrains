@@ -1,13 +1,7 @@
+import type { PlannedRoute, TripBoardingContext } from "@/types";
 import { firstRideStep } from "./firstRideStep";
-import type { PlannedRoute } from "./types";
 
-export type TripBoardingContext = {
-  stationKey: string;
-  stationName: string;
-  /** Walk time from trip origin until the first train boarding point. */
-  walkMinutes: number;
-  tripOriginName: string;
-};
+export type { TripBoardingContext };
 
 export function walkMinutesBeforeFirstRide(route: PlannedRoute): number {
   let mins = 0;

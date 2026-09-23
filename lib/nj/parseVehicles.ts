@@ -1,4 +1,4 @@
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 import { colorForRoute, routeFromApiLine } from "./njRoutes";
 import { njResolveVehiclePosition } from "./routeTracks";
 import { distanceToStopM, findNearestStop } from "./stopIndex";

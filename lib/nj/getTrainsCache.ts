@@ -1,4 +1,4 @@
-import type { TrainsResponse } from "@/lib/types";
+import type { TrainsResponse } from "@/types";
 
 const CACHE_MS = 8_000;
 

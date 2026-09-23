@@ -1,4 +1,4 @@
-import type { RouteStep } from "./types";
+import type { RouteStep } from "@/types";
 
 /** Insert explicit transfer steps between consecutive train rides for the timeline UI. */
 export function routeStepsForDisplay(steps: RouteStep[]): RouteStep[] {

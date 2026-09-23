@@ -1,8 +1,6 @@
-/** How a saved trip resolves which live train to track. */
-export type TripTrackingState =
-  | { mode: "off" }
-  | { mode: "auto" }
-  | { mode: "train"; trainId: string };
+import type { TripTrackingState } from "@/types";
+
+export type { TripTrackingState };
 
 export function parseTripTrackingState(raw: unknown): TripTrackingState | null {
   if (typeof raw !== "object" || raw === null) return null;

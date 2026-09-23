@@ -25,19 +25,16 @@ export type LiveTrain = {
   atStation?: boolean;
 };
 
-export type TrainsResponse = {
+/** JSON shape for `/api/trains`, `/api/subway`, and `/api/train`. */
+export type LiveFeedResponse = {
   trains: LiveTrain[];
   error: string | null;
   configured: boolean;
   updatedAt?: string;
 };
 
-export type SubwayResponse = {
-  trains: LiveTrain[];
-  error: string | null;
-  configured: boolean;
-  updatedAt?: string;
-};
+export type TrainsResponse = LiveFeedResponse;
+export type SubwayResponse = LiveFeedResponse;
 
 export type MapScope = "all" | "mta" | "njt";
 

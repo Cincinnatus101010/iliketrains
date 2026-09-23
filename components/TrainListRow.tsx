@@ -6,7 +6,7 @@ import {
   trainMeta,
   trainTimeLabel,
 } from "@/lib/trainDisplay";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 
 type TrainListRowProps = {
   train: LiveTrain;

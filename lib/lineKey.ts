@@ -1,6 +1,6 @@
-import type { LiveTrain, MapScope, Network } from "@/lib/types";
+import type { LineKey, LiveTrain, MapScope, Network } from "@/types";
 
-export type LineKey = `${Network}:${string}`;
+export type { LineKey };
 
 export function lineKey(network: Network, route: string): LineKey {
   return `${network}:${route}`;

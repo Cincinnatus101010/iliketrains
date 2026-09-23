@@ -1,8 +1,8 @@
+import type { PlannedRoute, RouteStep } from "@/types";
 import { haversineMeters, walkMinutesForDistanceM } from "./geo";
 import type { TripGraph } from "./loadGraph";
 import { routeColor } from "./routeColor";
 import { buildTripStats } from "./tripStats";
-import type { PlannedRoute, RouteStep } from "./types";
 
 export function planTrip(graph: TripGraph, fromKey: string, toKey: string): PlannedRoute | null {
   if (!graph.nodes.has(fromKey) || !graph.nodes.has(toKey)) {

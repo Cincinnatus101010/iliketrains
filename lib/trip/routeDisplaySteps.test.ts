@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { RouteStep } from "@/types";
 import { routeStepsForDisplay, tripTransferStopNames } from "./routeDisplaySteps";
-import type { RouteStep } from "./types";
 
 describe("routeStepsForDisplay", () => {
   it("inserts a platform transfer between two rides", () => {

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ScheduleDeparture } from "@/lib/types";
+import type { PlannedRoute, ScheduleDeparture } from "@/types";
 import { filterDeparturesAfterArrival, filterDeparturesTowardTrip } from "./filterDepartures";
-import type { PlannedRoute } from "./types";
 
 function dep(at: string): ScheduleDeparture {
   return {

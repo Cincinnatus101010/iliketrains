@@ -1,10 +1,7 @@
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain, UpcomingStop } from "@/types";
 import { indexOfStopName } from "./stopNames";
 
-export type UpcomingStop = {
-  name: string;
-  kind: "at" | "next" | "upcoming";
-};
+export type { UpcomingStop };
 
 const MAX_UPCOMING = 8;
 

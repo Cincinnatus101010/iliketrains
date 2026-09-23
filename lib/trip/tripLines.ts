@@ -1,7 +1,6 @@
 import { type LineKey, lineKey, parseLineKey, trainMatchesLineKey } from "@/lib/lineKey";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain, RouteStep } from "@/types";
 import type { SavedTrip } from "./savedTrip";
-import type { RouteStep } from "./types";
 
 export function rideLineKeysFromTrip(trip: SavedTrip): LineKey[] {
   const keys = new Set<LineKey>();

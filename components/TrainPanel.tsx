@@ -4,7 +4,7 @@ import { Button, Typography } from "@iantroisi/ui";
 import { type LineKey, parseLineKey, trainMatchesLineKey } from "@/lib/lineKey";
 import { subwayLineName } from "@/lib/mta/lines";
 import { lineName as njLineName } from "@/lib/nj/lines";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 import { TrainListRow } from "./TrainListRow";
 
 type TrainPanelProps = {
