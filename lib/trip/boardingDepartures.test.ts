@@ -57,7 +57,7 @@ describe("departuresForBoarding", () => {
       dep({ trainId: "103", destination: "New York", scheduledAt: "2026-06-01T19:00:00" }),
     ];
     const out = departuresForBoarding(items, hobokenToMadisonRoute(), "BNTN", 0, now);
-    expect(out.map((d) => d.trainId)).toEqual(["101"]);
+    expect(out.map((d) => d.trainId)).toEqual(["101", "102"]);
   });
 
   it("includes track on each row", () => {

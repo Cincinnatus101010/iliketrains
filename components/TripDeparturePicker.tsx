@@ -1,14 +1,16 @@
 "use client";
 
 import { Typography } from "@iantroisi/ui";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { formatNjScheduleDeparture } from "@/lib/formatTime";
 import { lineName } from "@/lib/nj/lines";
-import type { ScheduleDeparture, TripBoardingSchedule } from "@/types";
+import { boardingDepartureKind, boardingDepartureKindLabel } from "@/lib/trip/filterDepartures";
+import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 
 type TripDeparturePickerProps = {
   fromKey: string;
   fromName: string;
+  route: PlannedRoute;
   boarding: TripBoardingSchedule | null;
   loading?: boolean;
   selected: ScheduleDeparture | null;
@@ -23,14 +25,24 @@ function departureKey(item: ScheduleDeparture): string {
 export function TripDeparturePicker({
   fromKey,
   fromName,
+  route,
   boarding,
   loading = false,
   selected,
   onSelect,
   onDeparturesLoaded,
 }: TripDeparturePickerProps) {
-  const items = boarding?.departures ?? [];
+  const items = useMemo(() => {
+    const raw = boarding?.departures ?? [];
+    return [...raw].sort((a, b) => {
+      const ka = boardingDepartureKind(route, a);
+      const kb = boardingDepartureKind(route, b);
+      if (ka === kb) return 0;
+      return ka === "direct" ? -1 : 1;
+    });
+  }, [boarding?.departures, route]);
   const lineCode = boarding?.lineCode ?? "";
+  const tripNeedsTransfer = (route.stats?.transferCount ?? 0) > 0;
   const boardName = boarding?.boarding.stationName ?? fromName;
   const boardsAtFrom = boarding?.boarding.stationKey === fromKey;
 
@@ -61,7 +73,9 @@ export function TripDeparturePicker({
       </p>
       <p className="trip-departure-arrival-hint">
         {boardsAtFrom
-          ? `Trains at ${boardName} that serve your trip — scheduled time and track.`
+          ? tripNeedsTransfer
+            ? `Trains at ${boardName} — direct to your destination or with the transfer shown above.`
+            : `Trains at ${boardName} that serve your trip — scheduled time and track.`
           : `First train boards at ${boardName} (~${fromName} is your trip start).`}
       </p>
 
@@ -81,6 +95,8 @@ export function TripDeparturePicker({
         {items.map((item) => {
           const key = departureKey(item);
           const isOn = selected ? departureKey(selected) === key : false;
+          const kind = boardingDepartureKind(route, item);
+          const kindLabel = boardingDepartureKindLabel(kind, route);
           return (
             <li key={key}>
               <button
@@ -93,7 +109,16 @@ export function TripDeparturePicker({
                   {formatNjScheduleDeparture(item.scheduledAt)}
                 </span>
                 <span className="trip-departure-option-body">
-                  <span className="trip-departure-option-dest">{item.destination}</span>
+                  <span className="trip-departure-option-dest-row">
+                    <span className="trip-departure-option-dest">{item.destination}</span>
+                    {tripNeedsTransfer && (
+                      <span
+                        className={`trip-departure-option-tag trip-departure-option-tag--${kind}`}
+                      >
+                        {kindLabel}
+                      </span>
+                    )}
+                  </span>
                   <span className="trip-departure-option-meta">{`Train #${item.trainId}`}</span>
                 </span>
                 <span className="trip-departure-option-track">

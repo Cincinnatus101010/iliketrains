@@ -47,7 +47,10 @@ export async function boardingDeparturesForRoute(
     };
   }
 
-  const schedule = await getScheduleResponse(stationCode, lineCode);
+  let schedule = await getScheduleResponse(stationCode, lineCode);
+  if (schedule.items.length === 0) {
+    schedule = await getScheduleResponse(stationCode, null);
+  }
   const departures = departuresForBoarding(schedule.items, route, lineCode, boarding.walkMinutes);
 
   return {
@@ -68,7 +71,10 @@ export function departuresForBoarding(
   nowMs = Date.now(),
 ): ScheduleDeparture[] {
   const onLine = items.filter((item) => itemMatchesRoute(item, lineCode));
-  const towardTrip = filterDeparturesTowardTrip(onLine, route);
+  let towardTrip = filterDeparturesTowardTrip(onLine, route);
+  if (towardTrip.length === 0 && onLine.length > 0) {
+    towardTrip = onLine;
+  }
   const afterArrival = filterDeparturesAfterArrival(towardTrip, walkMinutes, nowMs);
   return sortUniqueDepartureRows(afterArrival);
 }

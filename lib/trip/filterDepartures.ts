@@ -87,15 +87,9 @@ function isLikelyOppositeDirection(destRaw: string, firstLeg: RouteStep): boolea
         dest.includes("lake hopatcong")
       );
     }
+    // Westbound / transfer at Newark Broad: Dover & Morris trains still stop there.
     if (tripHeadsToMorrisWest(target) || target.includes("newark broad")) {
-      return (
-        dest.includes("hoboken") ||
-        dest.includes("new york") ||
-        dest.includes("dover") ||
-        dest.includes("hackettstown") ||
-        dest.includes("gladstone") ||
-        dest.includes("netcong")
-      );
+      return dest.includes("hoboken") || dest.includes("new york");
     }
   }
 
@@ -109,6 +103,27 @@ function isLikelyOppositeDirection(destRaw: string, firstLeg: RouteStep): boolea
   }
 
   return false;
+}
+
+/** Whether this departure’s destination is the trip’s final rail stop (no transfer). */
+export function boardingDepartureKind(
+  route: PlannedRoute,
+  item: ScheduleDeparture,
+): "direct" | "transfer" {
+  const rides = route.steps.filter((s) => s.kind === "ride" && s.route);
+  if (rides.length <= 1) return "direct";
+  const finalStop = rides.at(-1)!.toName;
+  if (destinationMatchesStop(item.destination, normalizeName(finalStop))) return "direct";
+  return "transfer";
+}
+
+export function boardingDepartureKindLabel(
+  kind: "direct" | "transfer",
+  route: PlannedRoute,
+): string {
+  if (kind === "direct") return "Direct";
+  const n = route.stats?.transferCount ?? 1;
+  return n === 1 ? "1 transfer" : `${n} transfers`;
 }
 
 /** Keep departures at this stop that aren’t clearly the wrong direction. */

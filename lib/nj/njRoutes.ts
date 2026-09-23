@@ -39,6 +39,8 @@ const LINE_CODE_TO_ROUTE: Record<string, string> = {
   GB: "MNEG",
   BNTN: "BNTN",
   MB: "BNTN",
+  MOBO: "BNTN",
+  MC: "BNTN",
   MNBN: "MNBN",
   ML: "MNBN",
   BM: "MNBN",

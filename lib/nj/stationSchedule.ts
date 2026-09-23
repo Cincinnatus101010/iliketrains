@@ -101,12 +101,15 @@ export async function fetchStationDaySchedule(
   const cacheKey = `${stationCode}:${routeCode.toUpperCase()}`;
   const cached = dayScheduleCache.get(cacheKey);
   if (cached && Date.now() - cached.at < DAY_CACHE_MS) {
-    return {
-      stationCode,
-      stationName: cached.stationName,
-      items: upcomingItems(filterByRoute(cached.items, routeCode)),
-      error: null,
-    };
+    const filtered = upcomingItems(filterByRoute(cached.items, routeCode));
+    if (filtered.length > 0) {
+      return {
+        stationCode,
+        stationName: cached.stationName,
+        items: filtered,
+        error: null,
+      };
+    }
   }
 
   const failedUntil = dayFailUntil.get(stationCode) ?? 0;
@@ -136,10 +139,14 @@ export async function fetchStationDaySchedule(
 
     dayScheduleCache.set(cacheKey, { at: Date.now(), items: allItems, stationName });
 
+    const filtered = upcomingItems(filterByRoute(allItems, routeCode));
+    if (filtered.length === 0) {
+      return fallbackToUpcoming(token, stationCode, stationName, routeCode);
+    }
     return {
       stationCode,
       stationName,
-      items: upcomingItems(filterByRoute(allItems, routeCode)),
+      items: filtered,
       error: null,
     };
   } catch {

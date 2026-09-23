@@ -786,12 +786,39 @@ body {
   gap: 0.06rem;
 }
 
+.trip-departure-option-dest-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
 .trip-departure-option-dest {
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.trip-departure-option-tag {
+  flex-shrink: 0;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.35rem;
+  border-radius: 4px;
+}
+
+.trip-departure-option-tag--direct {
+  color: #9ae6b0;
+  background: rgba(72, 187, 120, 0.18);
+}
+
+.trip-departure-option-tag--transfer {
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .trip-departure-option-meta {

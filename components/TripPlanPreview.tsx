@@ -32,6 +32,7 @@ export function TripPlanPreview({
 }: TripPlanPreviewProps) {
   const stats = route.stats;
   const isNjOrigin = parseLineKey(fromKey)?.network === "njt";
+  const showDepartures = Boolean(boarding?.lineCode) || isNjOrigin;
   const connection = tripConnectionLabel(route);
   const isDirect = connection === "Direct";
   const displaySteps = routeStepsForDisplay(route.steps);
@@ -72,10 +73,11 @@ export function TripPlanPreview({
         </ul>
       )}
 
-      {isNjOrigin ? (
+      {showDepartures ? (
         <TripDeparturePicker
           fromKey={fromKey}
           fromName={fromName}
+          route={route}
           boarding={boarding}
           loading={scheduleLoading}
           selected={chosenDeparture}
