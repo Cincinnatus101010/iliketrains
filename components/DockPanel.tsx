@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { LineKey } from "@/lib/lineKey";
+import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { njStationCodeFromTripKey } from "@/lib/trip/tripLines";
 import type { LiveTrain } from "@/types";
@@ -27,6 +28,7 @@ type DockPanelProps = {
   onEndTrip: () => void;
   onStopTracking: () => void;
   trackedTrain: LiveTrain | null;
+  incomingTrain: IncomingTrainMapHint | null;
 };
 
 export function DockPanel({
@@ -38,6 +40,7 @@ export function DockPanel({
   onEndTrip,
   onStopTracking,
   trackedTrain,
+  incomingTrain,
   ...props
 }: DockPanelProps) {
   const [tab, setTab] = useState<DockTab>(() => (savedTrip ? "trip" : "live"));
@@ -86,6 +89,8 @@ export function DockPanel({
           trip={savedTrip}
           trains={props.trains}
           activeLine={props.activeLine}
+          trackedTrain={trackedTrain}
+          incomingTrain={incomingTrain}
           onTrackTrain={onTrackTrain}
           onEditTrip={onEditTrip}
           onEndTrip={onEndTrip}

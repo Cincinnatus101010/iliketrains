@@ -56,7 +56,7 @@ describe("departuresForBoarding", () => {
       dep({ trainId: "102", destination: "Dover", scheduledAt: "2026-06-01T18:45:00" }),
       dep({ trainId: "103", destination: "New York", scheduledAt: "2026-06-01T19:00:00" }),
     ];
-    const out = departuresForBoarding(items, hobokenToMadisonRoute(), "BNTN", 0, now);
+    const out = departuresForBoarding(items, hobokenToMadisonRoute(), ["BNTN"], 0, now);
     expect(out.map((d) => d.trainId)).toEqual(["101", "102"]);
   });
 
@@ -69,7 +69,73 @@ describe("departuresForBoarding", () => {
         scheduledAt: "2026-06-01T18:30:00",
       }),
     ];
-    const out = departuresForBoarding(items, hobokenToMadisonRoute(), "BNTN", 0, now);
+    const out = departuresForBoarding(items, hobokenToMadisonRoute(), ["BNTN"], 0, now);
     expect(out[0]?.track).toBe("7");
+  });
+
+  it("merges departures across multiple boarding lines at the same station", () => {
+    const items = [
+      dep({
+        trainId: "201",
+        destination: "Dover",
+        lineAbbrev: "MOBO",
+        line: "Montclair-Boonton",
+        scheduledAt: "2026-06-01T18:30:00",
+      }),
+      dep({
+        trainId: "301",
+        destination: "Hackettstown",
+        lineAbbrev: "M&E",
+        line: "Morris & Essex",
+        lineCode: "ME",
+        scheduledAt: "2026-06-01T18:45:00",
+      }),
+      dep({
+        trainId: "401",
+        destination: "Atlantic City",
+        lineAbbrev: "AC",
+        line: "Atlantic City Line",
+        lineCode: "AC",
+        scheduledAt: "2026-06-01T19:00:00",
+      }),
+    ];
+    const out = departuresForBoarding(items, hobokenToMadisonRoute(), ["BNTN", "MNE"], 0, now);
+    expect(out.map((d) => d.trainId).sort()).toEqual(["201", "301"]);
+  });
+
+  it("direct trip filters to a single line at non-hub stations", () => {
+    const route: PlannedRoute = {
+      stopCount: 2,
+      coordinatesLonLat: [],
+      steps: [
+        {
+          kind: "ride",
+          route: "MNE",
+          fromName: "SUMMIT",
+          toName: "MADISON",
+          color: null,
+          network: "njt",
+          fromKey: "njt:145",
+          toKey: "njt:77",
+        },
+      ],
+    };
+    const items = [
+      dep({
+        trainId: "501",
+        destination: "Madison",
+        lineAbbrev: "M&E",
+        line: "Morris & Essex",
+        scheduledAt: "2026-06-01T18:30:00",
+      }),
+      dep({
+        trainId: "502",
+        destination: "New York",
+        lineAbbrev: "M&E",
+        scheduledAt: "2026-06-01T18:40:00",
+      }),
+    ];
+    const out = departuresForBoarding(items, route, ["MNE"], 0, now);
+    expect(out.map((d) => d.trainId)).toEqual(["501"]);
   });
 });

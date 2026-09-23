@@ -2,11 +2,14 @@
 
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
 import maplibregl from "maplibre-gl";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { type MutableRefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
+import { lngLatForIncomingOnTrack } from "@/lib/map/incomingTrainOnTrack";
 import { observeMapContainerResize } from "@/lib/map/mapResize";
 import { TrackEngine } from "@/lib/map/trackEngine";
 import { TrainMarkerController } from "@/lib/map/trainMarkerController";
+import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
+import type { TripTrackFocus } from "@/lib/trip/tripTrackFocus";
 import { useStableEvent } from "@/lib/useStableEvent";
 import type { LiveTrain } from "@/types";
 
@@ -19,6 +22,8 @@ type NjLiveMapProps = {
   trains: LiveTrain[];
   trainsSignature: string;
   highlightLine: LineKey | null;
+  tripTrackFocus: TripTrackFocus | null;
+  incomingTrain: IncomingTrainMapHint | null;
   padding: MapPadding;
   plannedRoute: [number, number][] | null;
   plannedRouteFitKey: string | null;
@@ -35,6 +40,8 @@ export function NjLiveMap({
   trains,
   trainsSignature,
   highlightLine,
+  tripTrackFocus,
+  incomingTrain,
   padding,
   plannedRoute,
   plannedRouteFitKey,
@@ -50,7 +57,7 @@ export function NjLiveMap({
   const mapRef = useRef<GameMap | null>(null);
   const engineRef = useRef<TrackEngine | null>(null);
   const markersRef = useRef<TrainMarkerController | null>(null);
-  const layersReady = useRef(false);
+  const [trackLayersReady, setTrackLayersReady] = useState(false);
   const lastRouteFitKeyRef = useRef<string | null>(null);
   const lastOverviewKeyRef = useRef(0);
   const trainsRef = useRef(trains);
@@ -68,6 +75,9 @@ export function NjLiveMap({
 
   const followPanFromMapRef = useRef(false);
   const prevFollowIdRef = useRef<string | null>(null);
+  const incomingMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const lastIncomingLabelRef = useRef<string | null>(null);
+  const incomingCameraKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,9 +138,7 @@ export function NjLiveMap({
       const onLoad = () => {
         void installTrackLayers(map).then(() => {
           ensurePlannedRouteLayer(map);
-          layersReady.current = true;
-          applyLineHighlight(map, highlightLine);
-          controller.sync(trainsRef.current);
+          setTrackLayersReady(true);
         });
       };
 
@@ -149,9 +157,11 @@ export function NjLiveMap({
 
     return () => {
       cancelled = true;
-      layersReady.current = false;
+      setTrackLayersReady(false);
       stopViewListeners?.();
       stopResizeObserve?.();
+      incomingMarkerRef.current?.remove();
+      incomingMarkerRef.current = null;
       markersRef.current?.dispose();
       markersRef.current = null;
       engineRef.current = null;
@@ -166,11 +176,18 @@ export function NjLiveMap({
   useLayoutEffect(() => {
     const map = mapRef.current;
     const controller = markersRef.current;
-    if (!map || !controller || !layersReady.current) return;
+    if (!map || !controller || !trackLayersReady) return;
 
     map.setPadding(padding);
-    applyLineHighlight(map, highlightLine);
+    applyMapTrackHighlight(map, highlightLine, tripTrackFocus);
     controller.sync(trains);
+    syncIncomingTrainMarker(
+      map,
+      engineRef.current,
+      incomingTrain,
+      incomingMarkerRef,
+      lastIncomingLabelRef,
+    );
     controller.setTripHighlightTrainIds(mapLiveRef.current.tripHighlightTrainIds);
 
     const panToTrain = (lngLat: [number, number]) => {
@@ -188,32 +205,35 @@ export function NjLiveMap({
       trackingTrainId ? (lngLat) => panToTrain(lngLat) : null,
     );
 
-    if (trackingTrainId && trackingTrainLiveKey) {
-      const train = trains.find((t) => t.id === trackingTrainId);
-      if (train) {
-        const initialFocus = prevFollowIdRef.current !== trackingTrainId;
-        prevFollowIdRef.current = trackingTrainId;
+    if (incomingTrain) {
+      const onTrack =
+        engineRef.current?.ready && incomingTrain.route
+          ? lngLatForIncomingOnTrack(
+              engineRef.current,
+              incomingTrain.route,
+              incomingTrain.boardingLonLat,
+              incomingTrain.approachProgress,
+            )
+          : null;
+      const center: [number, number] = onTrack
+        ? [onTrack.lon, onTrack.lat]
+        : [incomingTrain.longitude, incomingTrain.latitude];
+      const focusKey = `${incomingTrain.trainId}:${center[0].toFixed(3)}:${center[1].toFixed(3)}`;
+      const initialFocus = incomingCameraKeyRef.current !== focusKey;
+      if (initialFocus) {
+        incomingCameraKeyRef.current = focusKey;
         followPanFromMapRef.current = true;
-        const center: [number, number] = [train.longitude, train.latitude];
-        const zoom = Math.max(map.getZoom(), 12.5);
-        if (initialFocus) {
-          map.easeTo({ center, zoom, duration: 700, padding, essential: true });
-        } else {
-          map.jumpTo({ center, zoom, padding });
-        }
+        const [bLon, bLat] = incomingTrain.boardingLonLat;
+        map.fitBounds(
+          [
+            [Math.min(center[0], bLon), Math.min(center[1], bLat)],
+            [Math.max(center[0], bLon), Math.max(center[1], bLat)],
+          ],
+          { padding: 72, duration: 700, maxZoom: 13 },
+        );
       }
     } else {
-      prevFollowIdRef.current = null;
-      if (overviewKey > 0 && overviewKey !== lastOverviewKeyRef.current) {
-        lastOverviewKeyRef.current = overviewKey;
-        map.easeTo({
-          center: CENTER,
-          zoom: ZOOM,
-          duration: 700,
-          padding,
-          essential: true,
-        });
-      }
+      incomingCameraKeyRef.current = null;
     }
 
     ensurePlannedRouteLayer(map);
@@ -233,7 +253,12 @@ export function NjLiveMap({
           geometry: { type: "LineString", coordinates: plannedRoute },
         });
 
-        if (plannedRouteFitKey && plannedRouteFitKey !== lastRouteFitKeyRef.current) {
+        const followingLiveTrain = Boolean(trackingTrainId && trackingTrainLiveKey);
+        if (
+          plannedRouteFitKey &&
+          plannedRouteFitKey !== lastRouteFitKeyRef.current &&
+          !followingLiveTrain
+        ) {
           lastRouteFitKeyRef.current = plannedRouteFitKey;
           const lons = plannedRoute.map((c) => c[0]);
           const lats = plannedRoute.map((c) => c[1]);
@@ -247,10 +272,40 @@ export function NjLiveMap({
         }
       }
     }
+
+    if (trackingTrainId && trackingTrainLiveKey && !incomingTrain) {
+      const train = trains.find((t) => t.id === trackingTrainId);
+      if (train) {
+        const initialFocus = prevFollowIdRef.current !== trackingTrainId;
+        prevFollowIdRef.current = trackingTrainId;
+        followPanFromMapRef.current = true;
+        const center: [number, number] = [train.longitude, train.latitude];
+        const zoom = Math.max(map.getZoom(), 12.5);
+        if (initialFocus) {
+          map.easeTo({ center, zoom, duration: 700, padding, essential: true });
+        } else {
+          map.jumpTo({ center, zoom, padding });
+        }
+      }
+    } else if (!incomingTrain) {
+      prevFollowIdRef.current = null;
+      if (overviewKey > 0 && overviewKey !== lastOverviewKeyRef.current) {
+        lastOverviewKeyRef.current = overviewKey;
+        map.easeTo({
+          center: CENTER,
+          zoom: ZOOM,
+          duration: 700,
+          padding,
+          essential: true,
+        });
+      }
+    }
   }, [
     trains,
     trainsSignature,
     highlightLine,
+    tripTrackFocus,
+    incomingTrain,
     padding,
     tripHighlightKey,
     trackingTrainId,
@@ -259,6 +314,7 @@ export function NjLiveMap({
     plannedRoute,
     plannedRouteFitKey,
     overviewKey,
+    trackLayersReady,
   ]);
 
   return <div ref={containerRef} className="nj-map" aria-label="NYC and NJ live transit map" />;
@@ -287,6 +343,30 @@ function ensurePlannedRouteLayer(map: GameMap) {
   });
 }
 
+function applyMapTrackHighlight(
+  map: GameMap,
+  highlightLine: LineKey | null,
+  tripTrackFocus: TripTrackFocus | null,
+) {
+  if (tripTrackFocus?.routes.length) {
+    applyRoutesTrackFocus(map, tripTrackFocus);
+    return;
+  }
+  applyLineHighlight(map, highlightLine);
+}
+
+function applyRoutesTrackFocus(map: GameMap, focus: TripTrackFocus) {
+  const routes = focus.routes.map((r) => r.toUpperCase());
+  setMultiRouteOpacity(map, "nj-tracks-line", "nj-tracks-casing", focus.network === "njt", routes);
+  setMultiRouteOpacity(
+    map,
+    "subway-tracks-line",
+    "subway-tracks-casing",
+    focus.network === "mta",
+    routes,
+  );
+}
+
 function applyLineHighlight(map: GameMap, highlightLine: LineKey | null) {
   const parsed = parseLineKey(highlightLine);
 
@@ -303,6 +383,94 @@ function applyLineHighlight(map: GameMap, highlightLine: LineKey | null) {
     setTrackOpacity(map, "nj-tracks-line", "nj-tracks-casing", parsed.route, true);
     setTrackOpacity(map, "subway-tracks-line", "subway-tracks-casing", null, false);
   }
+}
+
+function setMultiRouteOpacity(
+  map: GameMap,
+  lineLayer: string,
+  casingLayer: string,
+  networkActive: boolean,
+  routes: string[],
+) {
+  if (!map.getLayer(lineLayer)) return;
+
+  if (!networkActive) {
+    map.setPaintProperty(lineLayer, "line-opacity", 0);
+    map.setPaintProperty(casingLayer, "line-opacity", 0);
+    return;
+  }
+
+  const matchExpr: maplibregl.ExpressionSpecification =
+    routes.length === 1
+      ? ["==", ["get", "route"], routes[0]!]
+      : ([
+          "any",
+          ...routes.map((r) => ["==", ["get", "route"], r]),
+        ] as maplibregl.ExpressionSpecification);
+
+  map.setPaintProperty(lineLayer, "line-opacity", ["case", matchExpr, 1, 0]);
+  map.setPaintProperty(casingLayer, "line-opacity", ["case", matchExpr, 0.5, 0]);
+}
+
+function syncIncomingTrainMarker(
+  map: GameMap,
+  engine: TrackEngine | null,
+  incoming: IncomingTrainMapHint | null,
+  markerRef: MutableRefObject<maplibregl.Marker | null>,
+  labelRef: MutableRefObject<string | null>,
+) {
+  if (!incoming) {
+    labelRef.current = null;
+    markerRef.current?.remove();
+    markerRef.current = null;
+    return;
+  }
+
+  let lon = incoming.longitude;
+  let lat = incoming.latitude;
+  if (engine?.ready && incoming.route) {
+    const onTrack = lngLatForIncomingOnTrack(
+      engine,
+      incoming.route,
+      incoming.boardingLonLat,
+      incoming.approachProgress,
+    );
+    if (onTrack) {
+      lon = onTrack.lon;
+      lat = onTrack.lat;
+    } else {
+      const hit = engine.project(incoming.route, lat, lon);
+      if (hit) {
+        lon = hit.lon;
+        lat = hit.lat;
+      }
+    }
+  }
+  if (!markerRef.current) {
+    const el = document.createElement("div");
+    el.className = "incoming-train-marker";
+    el.innerHTML = `<span class="incoming-train-marker-dot" aria-hidden="true"></span><span class="incoming-train-marker-label">${escapeHtml(incoming.label)}</span>`;
+    markerRef.current = new maplibregl.Marker({ element: el, anchor: "center" })
+      .setLngLat([lon, lat])
+      .addTo(map);
+    labelRef.current = incoming.trainId;
+    return;
+  }
+
+  markerRef.current.setLngLat([lon, lat]);
+  if (labelRef.current !== incoming.trainId) {
+    const label = markerRef.current.getElement().querySelector(".incoming-train-marker-label");
+    if (label) label.textContent = incoming.label;
+    labelRef.current = incoming.trainId;
+  }
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function setTrackOpacity(

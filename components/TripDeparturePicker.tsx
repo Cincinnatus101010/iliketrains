@@ -4,6 +4,7 @@ import { Typography } from "@iantroisi/ui";
 import { useEffect, useMemo } from "react";
 import { formatNjScheduleDeparture } from "@/lib/formatTime";
 import { lineName } from "@/lib/nj/lines";
+import { boardingScheduleLineCodes } from "@/lib/trip/boardingLines";
 import { boardingDepartureKind, boardingDepartureKindLabel } from "@/lib/trip/filterDepartures";
 import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 
@@ -41,7 +42,8 @@ export function TripDeparturePicker({
       return ka === "direct" ? -1 : 1;
     });
   }, [boarding?.departures, route]);
-  const lineCode = boarding?.lineCode ?? "";
+  const lineCodes = boarding ? boardingScheduleLineCodes(route, boarding.boarding.stationKey) : [];
+  const lineSubtitle = lineCodes.map((code) => lineName(code)).join(" · ");
   const tripNeedsTransfer = (route.stats?.transferCount ?? 0) > 0;
   const boardName = boarding?.boarding.stationName ?? fromName;
   const boardsAtFrom = boarding?.boarding.stationKey === fromKey;
@@ -51,7 +53,7 @@ export function TripDeparturePicker({
     onDeparturesLoaded?.(items.length > 0);
   }, [boarding, items.length, loading, onDeparturesLoaded]);
 
-  if (!boarding?.boarding || !lineCode) {
+  if (!boarding?.boarding || lineCodes.length === 0) {
     return (
       <p className="trip-departure-hint">
         No rail departure list for this route — you can still start and use live map data.
@@ -69,7 +71,7 @@ export function TripDeparturePicker({
     <div className="trip-departure-picker">
       <p className="nav-sheet-preview-title">Pick a departure</p>
       <p className="trip-departure-sub">
-        {lineName(lineCode)} · {boarding.stationName || boardName}
+        {lineSubtitle} · {boarding.stationName || boardName}
       </p>
       <p className="trip-departure-arrival-hint">
         {boardsAtFrom
@@ -119,7 +121,10 @@ export function TripDeparturePicker({
                       </span>
                     )}
                   </span>
-                  <span className="trip-departure-option-meta">{`Train #${item.trainId}`}</span>
+                  <span className="trip-departure-option-meta">
+                    {item.lineAbbrev ? `${item.lineAbbrev} · ` : ""}
+                    {`Train #${item.trainId}`}
+                  </span>
                 </span>
                 <span className="trip-departure-option-track">
                   {item.track ? `Trk ${item.track}` : "—"}

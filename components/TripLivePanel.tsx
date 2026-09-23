@@ -2,6 +2,7 @@
 
 import { formatNjDateTime } from "@/lib/formatTime";
 import type { LineKey } from "@/lib/lineKey";
+import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripSummaryLabel } from "@/lib/trip/savedTrip";
@@ -11,12 +12,15 @@ import { ensureRouteStats, tripConnectionLabel } from "@/lib/trip/tripStats";
 import type { LiveTrain } from "@/types";
 import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainListRow } from "./TrainListRow";
+import { TripIncomingBlock } from "./TripIncomingBlock";
 import { TripTimeline } from "./TripTimeline";
 
 type TripLivePanelProps = {
   trip: SavedTrip;
   trains: LiveTrain[];
   activeLine: LineKey | null;
+  trackedTrain: LiveTrain | null;
+  incomingTrain: IncomingTrainMapHint | null;
   onTrackTrain: (trainId: string) => void;
   onEditTrip: () => void;
   onEndTrip: () => void;
@@ -27,6 +31,8 @@ export function TripLivePanel({
   trip,
   trains,
   activeLine,
+  trackedTrain: trackedTrainLive,
+  incomingTrain: incoming,
   onTrackTrain,
   onEditTrip,
   onEndTrip,
@@ -46,8 +52,8 @@ export function TripLivePanel({
 
   const listTrains = trackingTrainId ? sorted.filter((t) => t.id === trackingTrainId) : sorted;
 
-  const trackedTrain = trackingTrainId ? (listTrains[0] ?? null) : null;
-
+  const trackedTrain =
+    trackingTrainId && trackedTrainLive?.id === trackingTrainId ? trackedTrainLive : null;
   return (
     <div className="train-panel-inner train-panel-inner--bottom">
       <div className="trip-dock-head">
@@ -82,23 +88,29 @@ export function TripLivePanel({
         </button>
       </div>
 
+      {incoming && trip.chosenDeparture && (
+        <TripIncomingBlock incoming={incoming} departure={trip.chosenDeparture} />
+      )}
+
+      {trackedTrain && <TrainFollowBlock train={trackedTrain} onStopTracking={onStopTracking} />}
+
       <p className="panel-meta trip-dock-live-meta">
-        {trackingTrainId
-          ? "Following your train"
-          : `${sorted.length} live on your route${activeLine ? " · line filter on" : ""}`}
+        {incoming
+          ? "Waiting for live GPS on your train"
+          : trackingTrainId
+            ? "Following your train"
+            : `${sorted.length} live on your route${activeLine ? " · line filter on" : ""}`}
       </p>
 
       <div className="trip-live-route">
         <TripTimeline steps={displaySteps} compact={Boolean(trackingTrainId)} />
       </div>
 
-      {trackedTrain && <TrainFollowBlock train={trackedTrain} onStopTracking={onStopTracking} />}
-
       <p className="panel-kicker trip-live-trains-label">
         {trackingTrainId ? "Your train" : "On your route now"}
       </p>
       <ul className="train-list" aria-label="Live trains on trip">
-        {listTrains.length === 0 && (
+        {listTrains.length === 0 && !incoming && (
           <li className="train-list-empty">
             <p className="trip-live-empty">
               {trackingTrainId

@@ -4,8 +4,10 @@ import { useMemo } from "react";
 import { type LineKey, lineKey } from "@/lib/lineKey";
 import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
 import { filterMapVisibleTrains, filterScopedTrains } from "@/lib/mapVisibleTrains";
+import { boardingNodeIndex } from "@/lib/trip/incomingTrainEstimate";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
+import { type TripTrackFocus, tripTrackFocusForWaitingTrain } from "@/lib/trip/tripTrackFocus";
 import type { LiveTrain, MapScope } from "@/types";
 
 type UseLiveTrainFiltersOptions = {
@@ -14,6 +16,8 @@ type UseLiveTrainFiltersOptions = {
   activeLine: LineKey | null;
   savedTrip: SavedTrip | null;
   trackingTrainId: string | null;
+  trackedTrain: LiveTrain | null;
+  waitingForTrackedTrain: boolean;
 };
 
 export function useLiveTrainFilters({
@@ -22,13 +26,24 @@ export function useLiveTrainFilters({
   activeLine,
   savedTrip,
   trackingTrainId,
+  trackedTrain,
+  waitingForTrackedTrain,
 }: UseLiveTrainFiltersOptions) {
   const scopedTrains = useMemo(() => filterScopedTrains(allTrains, scope), [allTrains, scope]);
 
-  const visibleTrains = useMemo(
-    () => filterMapVisibleTrains(allTrains, scope, activeLine),
-    [allTrains, scope, activeLine],
-  );
+  const visibleTrains = useMemo(() => {
+    if (waitingForTrackedTrain) return [];
+    let list = filterMapVisibleTrains(allTrains, scope, activeLine);
+    if (trackingTrainId && trackedTrain && !list.some((t) => t.id === trackingTrainId)) {
+      list = [...list, trackedTrain];
+    }
+    return list;
+  }, [allTrains, scope, activeLine, waitingForTrackedTrain, trackingTrainId, trackedTrain]);
+
+  const tripTrackFocus = useMemo((): TripTrackFocus | null => {
+    if (!waitingForTrackedTrain || !savedTrip) return null;
+    return tripTrackFocusForWaitingTrain(savedTrip);
+  }, [waitingForTrackedTrain, savedTrip]);
 
   const mapLiveCount = savedTrip
     ? scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).length
@@ -48,10 +63,16 @@ export function useLiveTrainFilters({
     [tripHighlightTrainIds],
   );
 
-  const showPlannedRoute = Boolean(savedTrip) && !trackingTrainId;
-  const plannedRouteCoords = showPlannedRoute ? (savedTrip?.route.coordinatesLonLat ?? null) : null;
+  const plannedRouteCoords = useMemo((): [number, number][] | null => {
+    if (!savedTrip) return null;
+    const coords = savedTrip.route.coordinatesLonLat;
+    if (!waitingForTrackedTrain || coords.length < 2) return coords;
+    const end = boardingNodeIndex(savedTrip.route);
+    return coords.slice(0, Math.min(end, coords.length - 1) + 1);
+  }, [savedTrip, waitingForTrackedTrain]);
+
   const plannedRouteFitKey =
-    showPlannedRoute && savedTrip
+    savedTrip && !waitingForTrackedTrain
       ? `${savedTrip.fromKey}:${savedTrip.toKey}:${savedTrip.savedAt}`
       : null;
 
@@ -73,6 +94,7 @@ export function useLiveTrainFilters({
     tripHighlightKey,
     plannedRouteCoords,
     plannedRouteFitKey,
+    tripTrackFocus,
     lineCounts,
   };
 }
