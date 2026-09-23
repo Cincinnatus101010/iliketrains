@@ -1,7 +1,7 @@
 "use client";
 
 import { FollowStopList } from "@/components/FollowStopList";
-import { useFollowUpcomingStops } from "@/components/useFollowUpcomingStops";
+import { useFollowUpcomingStops } from "@/hooks/useFollowUpcomingStops";
 import { trainFollowPrimary, trainFollowSecondary } from "@/lib/trainDisplay";
 import type { LiveTrain } from "@/types";
 

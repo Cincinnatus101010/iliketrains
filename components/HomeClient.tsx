@@ -2,7 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useHomeSession } from "@/hooks/useHomeSession";
+import { useHomeUiState } from "@/hooks/useHomeUiState";
 import { useLiveTrainFeeds } from "@/hooks/useLiveTrainFeeds";
+import { useLiveTrainFilters } from "@/hooks/useLiveTrainFilters";
 import { useMissedPollGrace } from "@/hooks/useMissedPollGrace";
 import { useTrackedTrain } from "@/hooks/useTrackedTrain";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
@@ -12,9 +15,6 @@ import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapPaneOverlays } from "./MapPaneOverlays";
 import { MapTopControls } from "./MapTopControls";
-import { useHomeSession } from "./useHomeSession";
-import { useHomeUiState } from "./useHomeUiState";
-import { useLiveTrainFilters } from "./useLiveTrainFilters";
 
 const NavigationSheet = dynamic(() => import("./NavigationSheet").then((m) => m.NavigationSheet), {
   ssr: false,

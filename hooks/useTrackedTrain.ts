@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { trainLiveSignature } from "@/lib/map/trainSyncKey";
-import type { LiveTrain } from "@/lib/types";
+import type { LiveTrain } from "@/types";
 
 export function useTrackedTrain(allTrains: LiveTrain[], trackingTrainId: string | null) {
   const trackedTrain = useMemo(
