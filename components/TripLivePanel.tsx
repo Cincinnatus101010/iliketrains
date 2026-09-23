@@ -54,7 +54,10 @@ export function TripLivePanel({
 
   const trackedTrain = trackingTrainId && trackedTrainLive ? trackedTrainLive : null;
   const activeTrackId = trackedTrain?.id ?? trackingTrainId;
-  const listTrains = activeTrackId ? sorted.filter((t) => t.id === activeTrackId) : sorted;
+  let listTrains = activeTrackId ? sorted.filter((t) => t.id === activeTrackId) : sorted;
+  if (trackedTrain && !listTrains.some((t) => t.id === trackedTrain.id)) {
+    listTrains = [trackedTrain, ...listTrains];
+  }
 
   const boardingName = tripBoardingContext(trip.route, trip.fromName)?.stationName ?? trip.fromName;
   const enRouteToBoarding = Boolean(
