@@ -1152,6 +1152,122 @@ body {
   margin: 0 0 0.5rem;
 }
 
+.trip-incoming-map {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  top: 4.25rem;
+  z-index: 4;
+  max-width: 22rem;
+  padding: 0.65rem 0.85rem;
+  pointer-events: none;
+}
+
+.trip-incoming-map-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.trip-incoming-map-eta {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+  color: #f8fafc;
+  line-height: 1.35;
+}
+
+.trip-incoming-map-eta strong {
+  color: #fccc0a;
+  font-weight: 650;
+}
+
+.trip-incoming-map-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1.35;
+}
+
+.trip-incoming-block {
+  flex-shrink: 0;
+  margin: 0 0 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.55rem;
+  background: rgba(252, 204, 10, 0.1);
+  border: 1px solid rgba(252, 204, 10, 0.35);
+}
+
+.trip-incoming-block-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+  align-items: start;
+}
+
+.trip-incoming-block-body {
+  min-width: 0;
+}
+
+.trip-incoming-block-eta {
+  margin: 0.12rem 0 0.08rem;
+  font-size: 1.05rem;
+  font-weight: 750;
+  line-height: 1.25;
+  color: #fccc0a;
+}
+
+.trip-incoming-block-detail {
+  margin: 0 0 0.15rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.3;
+}
+
+.incoming-train-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  pointer-events: none;
+}
+
+.incoming-train-marker-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fccc0a;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 4px rgba(252, 204, 10, 0.35);
+  animation: incoming-train-pulse 1.8s ease-in-out infinite;
+}
+
+.incoming-train-marker-label {
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(8, 12, 18, 0.88);
+  border: 1px solid rgba(252, 204, 10, 0.55);
+  color: #fccc0a;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+@keyframes incoming-train-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
 .nj-map {
   position: absolute;
   inset: 0;

@@ -14,4 +14,8 @@ describe("resolveNjStationCodeForTrip", () => {
   it("matches by 2-char code on the key when present", () => {
     expect(resolveNjStationCodeForTrip("njt:HB", "HOBOKEN", stations)).toBe("HB");
   });
+
+  it("maps other graph stop ids via stop catalog (Madison)", () => {
+    expect(resolveNjStationCodeForTrip("njt:77", "MADISON", stations)).toBe("MA");
+  });
 });

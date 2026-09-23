@@ -64,6 +64,9 @@ function tripHeadsToNySide(targetNorm: string): boolean {
 
 function tripHeadsToMorrisWest(targetNorm: string): boolean {
   return (
+    targetNorm.includes("madison") ||
+    targetNorm.includes("morristown") ||
+    targetNorm.includes("summit") ||
     targetNorm.includes("dover") ||
     targetNorm.includes("hackettstown") ||
     targetNorm.includes("netcong") ||

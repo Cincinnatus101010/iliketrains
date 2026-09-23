@@ -6,11 +6,14 @@ import { useHomeSession } from "@/hooks/useHomeSession";
 import { useHomeUiState } from "@/hooks/useHomeUiState";
 import { useLiveTrainFeeds } from "@/hooks/useLiveTrainFeeds";
 import { useLiveTrainFilters } from "@/hooks/useLiveTrainFilters";
+import { useMinuteClock } from "@/hooks/useMinuteClock";
 import { useMissedPollGrace } from "@/hooks/useMissedPollGrace";
 import { useTrackedTrain } from "@/hooks/useTrackedTrain";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
 import { mapTopCountLabel } from "@/lib/mapTopCountLabel";
+import { incomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
+import { waitingForChosenTrainLive } from "@/lib/trip/waitingForChosenTrainLive";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
 import { MapPaneOverlays } from "./MapPaneOverlays";
@@ -58,6 +61,16 @@ export function HomeClient() {
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
     useLiveTrainFeeds({ trackingTrainId });
 
+  const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(allTrains, trackingTrainId);
+
+  const waitingForTrackedTrain = waitingForChosenTrainLive(savedTrip, allTrains);
+  const incomingClock = useMinuteClock(waitingForTrackedTrain);
+  const incomingTrain = waitingForTrackedTrain
+    ? savedTrip
+      ? incomingTrainMapHint(savedTrip, incomingClock)
+      : null
+    : null;
+
   const {
     scopedTrains,
     visibleTrains,
@@ -67,6 +80,7 @@ export function HomeClient() {
     tripHighlightKey,
     plannedRouteCoords,
     plannedRouteFitKey,
+    tripTrackFocus,
     lineCounts,
   } = useLiveTrainFilters({
     allTrains,
@@ -74,9 +88,9 @@ export function HomeClient() {
     activeLine,
     savedTrip,
     trackingTrainId,
+    trackedTrain,
+    waitingForTrackedTrain,
   });
-
-  const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(allTrains, trackingTrainId);
 
   const hadTripRef = useRef(false);
   useEffect(() => {
@@ -91,11 +105,10 @@ export function HomeClient() {
   }, [savedTrip, resetUi]);
 
   const handleFollowExpired = useCallback(() => {
-    if (savedTrip) endTrip();
-    else stopTracking();
-  }, [savedTrip, endTrip, stopTracking]);
+    stopTracking();
+  }, [stopTracking]);
 
-  useMissedPollGrace(Boolean(trackingTrainId), Boolean(trackedTrain), {
+  useMissedPollGrace(Boolean(trackingTrainId) && !savedTrip, Boolean(trackedTrain), {
     maxMisses: TRAIN_MISSED_FEED_POLLS,
     onExpire: handleFollowExpired,
   });
@@ -112,8 +125,9 @@ export function HomeClient() {
     (trip: Parameters<typeof startTrip>[0]) => {
       startTrip(trip);
       expandDock();
+      refresh();
     },
-    [startTrip, expandDock],
+    [startTrip, expandDock, refresh],
   );
 
   const countLabel = mapTopCountLabel(mapLiveCount, { isTracking, savedTrip });
@@ -137,7 +151,9 @@ export function HomeClient() {
         <NjLiveMap
           trains={visibleTrains}
           trainsSignature={mapTrainsSignature}
-          highlightLine={activeLine}
+          highlightLine={waitingForTrackedTrain ? null : activeLine}
+          tripTrackFocus={tripTrackFocus}
+          incomingTrain={incomingTrain}
           padding={MAP_VIEW_PADDING}
           plannedRoute={plannedRouteCoords}
           plannedRouteFitKey={plannedRouteFitKey}
@@ -175,6 +191,7 @@ export function HomeClient() {
             onEndTrip={endTrip}
             onStopTracking={stopTracking}
             trackedTrain={trackedTrain}
+            incomingTrain={incomingTrain}
           />
         )}
       </section>
