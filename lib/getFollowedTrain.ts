@@ -1,8 +1,7 @@
-import { getSubwayResponse } from "@/lib/mta/getSubway";
-import { getTrainsResponse } from "@/lib/nj/getTrains";
-import type { TrainsResponse } from "@/lib/types";
+import { getLiveFeedResponse, liveFeedNetworkForTrainId } from "@/lib/liveFeeds/server";
+import type { LiveFeedResponse } from "@/types";
 
-function followedFromFeed(body: TrainsResponse, id: string): TrainsResponse {
+function followedFromFeed(body: LiveFeedResponse, id: string): LiveFeedResponse {
   const train = body.trains.find((t) => t.id === id);
   return {
     trains: train ? [train] : [],
@@ -12,19 +11,16 @@ function followedFromFeed(body: TrainsResponse, id: string): TrainsResponse {
   };
 }
 
-export async function getFollowedTrainResponse(trainId: string): Promise<TrainsResponse> {
+export async function getFollowedTrainResponse(trainId: string): Promise<LiveFeedResponse> {
   const id = trainId.trim();
   if (!id) {
     return { trains: [], error: "Train id required", configured: true };
   }
 
-  if (id.startsWith("njt-")) {
-    return followedFromFeed(await getTrainsResponse(), id);
+  const network = liveFeedNetworkForTrainId(id);
+  if (!network) {
+    return { trains: [], error: "Unknown train id", configured: true };
   }
 
-  if (id.startsWith("mta-")) {
-    return followedFromFeed(await getSubwayResponse(), id);
-  }
-
-  return { trains: [], error: "Unknown train id", configured: true };
+  return followedFromFeed(await getLiveFeedResponse(network), id);
 }

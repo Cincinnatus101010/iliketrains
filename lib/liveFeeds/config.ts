@@ -1,11 +1,11 @@
 import type { Key } from "steddy";
-import type { TrainsResponse } from "@/lib/types";
+import type { LiveFeedResponse } from "@/types";
 
-export const NJ_TRAINS_KEY = ["nj-trains"] as const;
-export const SUBWAY_TRAINS_KEY = ["subway-trains"] as const;
+export const NJ_LIVE_FEED_KEY = ["live-feed", "njt"] as const;
+export const MTA_LIVE_FEED_KEY = ["live-feed", "mta"] as const;
 
-export const NJ_TRAINS_POLL_MS = 20_000;
-export const SUBWAY_TRAINS_POLL_MS = 5_000;
+export const NJ_LIVE_FEED_POLL_MS = 20_000;
+export const MTA_LIVE_FEED_POLL_MS = 5_000;
 export const FOLLOWED_TRAIN_POLL_MS = 5_000;
 
 const FOLLOWED_TRAIN_NAMESPACE = "followed-train";
@@ -23,7 +23,7 @@ export function trainIdFromFollowedTrainKey(key: Key): string {
   return String(key[1] ?? "");
 }
 
-export const EMPTY_TRAINS_RESPONSE: TrainsResponse = {
+export const EMPTY_LIVE_FEED: LiveFeedResponse = {
   trains: [],
   error: null,
   configured: true,

@@ -1,9 +1,16 @@
-export function pickLatestUpdatedAt(a?: string, b?: string): string | undefined {
-  if (!a) return b;
-  if (!b) return a;
-  const ta = Date.parse(a);
-  const tb = Date.parse(b);
-  if (Number.isNaN(ta)) return b;
-  if (Number.isNaN(tb)) return a;
-  return ta >= tb ? a : b;
+export function pickLatestUpdatedAt(...timestamps: (string | undefined)[]): string | undefined {
+  let best: string | undefined;
+  let bestMs = -Infinity;
+
+  for (const ts of timestamps) {
+    if (!ts) continue;
+    const ms = Date.parse(ts);
+    if (Number.isNaN(ms)) continue;
+    if (ms >= bestMs) {
+      bestMs = ms;
+      best = ts;
+    }
+  }
+
+  return best;
 }
