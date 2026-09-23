@@ -56,7 +56,7 @@ export function orderedStopsOnNjRoute(
   if (trackCoords && trackCoords.length >= 2) {
     return sortStopsAlongCoords(stops, trackCoords);
   }
-  return stops.map((s) => s.name).sort((a, b) => a.localeCompare(b));
+  return [];
 }
 
 /**

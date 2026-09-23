@@ -29,6 +29,8 @@ export function useIncomingTrainMapHint(
       return;
     }
 
+    setHint(base);
+
     void resolveIncomingApproachDirection(
       base.route,
       base.boardingStationName,

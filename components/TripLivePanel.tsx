@@ -52,8 +52,7 @@ export function TripLivePanel({
 
   const listTrains = trackingTrainId ? sorted.filter((t) => t.id === trackingTrainId) : sorted;
 
-  const trackedTrain =
-    trackingTrainId && trackedTrainLive?.id === trackingTrainId ? trackedTrainLive : null;
+  const trackedTrain = trackingTrainId && trackedTrainLive ? trackedTrainLive : null;
   return (
     <div className="train-panel-inner train-panel-inner--bottom">
       <div className="trip-dock-head">

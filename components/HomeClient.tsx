@@ -60,7 +60,11 @@ export function HomeClient() {
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
     useLiveTrainFeeds({ trackingTrainId });
 
-  const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(allTrains, trackingTrainId);
+  const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(
+    allTrains,
+    trackingTrainId,
+    savedTrip,
+  );
 
   const waitingForTrackedTrain = waitingForChosenTrainLive(savedTrip, allTrains);
   const incomingTrain = useIncomingTrainMapHint(savedTrip, allTrains);

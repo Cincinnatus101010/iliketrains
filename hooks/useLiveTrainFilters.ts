@@ -53,10 +53,10 @@ export function useLiveTrainFilters({
 
   const tripHighlightTrainIds = useMemo(() => {
     if (!savedTrip) return new Set<string>();
-    if (trackingTrainId) return new Set([trackingTrainId]);
+    if (trackingTrainId) return new Set([trackedTrain?.id ?? trackingTrainId]);
     const ids = scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).map((t) => t.id);
     return new Set(ids);
-  }, [scopedTrains, savedTrip, trackingTrainId]);
+  }, [scopedTrains, savedTrip, trackingTrainId, trackedTrain]);
 
   const tripHighlightKey = useMemo(
     () => [...tripHighlightTrainIds].sort().join("\n"),
