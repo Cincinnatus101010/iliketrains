@@ -65,8 +65,11 @@ export async function getTripPlanResponse(
   }
 
   const route = ensureRouteStats(planned);
-  const { stations } = await getStationsResponse();
+  const { stations, error: stationsError } = await getStationsResponse();
   const boarding = await boardingDeparturesForRoute(route, fromNode.name, stations);
+  if (boarding && !boarding.stationCode && stations.length === 0 && stationsError) {
+    boarding.scheduleError = stationsError;
+  }
 
   return {
     fromKey: from,

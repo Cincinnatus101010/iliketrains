@@ -52,7 +52,6 @@ export function NavigationSheet({
       setFromKey(initialTrip.fromKey);
       setToKey(initialTrip.toKey);
       setPreview(ensureRouteStats(initialTrip.route));
-      setBoarding(null);
       setChosenDeparture(initialTrip.chosenDeparture ?? null);
       setError(null);
       return;
