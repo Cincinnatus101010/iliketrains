@@ -2,11 +2,13 @@
 
 import { formatNjDateTime } from "@/lib/formatTime";
 import type { LineKey } from "@/lib/lineKey";
+import { isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
 import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripSummaryLabel } from "@/lib/trip/savedTrip";
 import { trackingTrainIdForTrip } from "@/lib/trip/tracking";
+import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import { ensureRouteStats, tripConnectionLabel } from "@/lib/trip/tripStats";
 import type { LiveTrain } from "@/types";
@@ -50,9 +52,14 @@ export function TripLivePanel({
       a.label.localeCompare(b.label),
   );
 
-  const listTrains = trackingTrainId ? sorted.filter((t) => t.id === trackingTrainId) : sorted;
-
   const trackedTrain = trackingTrainId && trackedTrainLive ? trackedTrainLive : null;
+  const activeTrackId = trackedTrain?.id ?? trackingTrainId;
+  const listTrains = activeTrackId ? sorted.filter((t) => t.id === activeTrackId) : sorted;
+
+  const boardingName = tripBoardingContext(trip.route, trip.fromName)?.stationName ?? trip.fromName;
+  const enRouteToBoarding = Boolean(
+    trackedTrain && trip.chosenDeparture && isEnRouteToBoarding(trackedTrain, boardingName),
+  );
   return (
     <div className="train-panel-inner train-panel-inner--bottom">
       <div className="trip-dock-head">
@@ -91,14 +98,26 @@ export function TripLivePanel({
         <TripIncomingBlock incoming={incoming} departure={trip.chosenDeparture} />
       )}
 
-      {trackedTrain && <TrainFollowBlock train={trackedTrain} onStopTracking={onStopTracking} />}
+      {trackedTrain && (
+        <TrainFollowBlock
+          train={trackedTrain}
+          onStopTracking={onStopTracking}
+          kicker={
+            enRouteToBoarding
+              ? `Train ${trip.chosenDeparture?.trainId ?? trackedTrain.label} · on the way to ${boardingName}`
+              : undefined
+          }
+        />
+      )}
 
       <p className="panel-meta trip-dock-live-meta">
         {incoming
-          ? "Waiting for live GPS on your train"
-          : trackingTrainId
-            ? "Following your train"
-            : `${sorted.length} live on your route${activeLine ? " · line filter on" : ""}`}
+          ? "Scheduled — map shows estimated position until NJ Transit reports this train"
+          : enRouteToBoarding
+            ? "Live GPS on map · updates each feed poll"
+            : trackingTrainId
+              ? "Following your train"
+              : `${sorted.length} live on your route${activeLine ? " · line filter on" : ""}`}
       </p>
 
       <div className="trip-live-route">

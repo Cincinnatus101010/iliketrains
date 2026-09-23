@@ -20,7 +20,7 @@ export function TripIncomingBlock({ incoming, departure }: TripIncomingBlockProp
     <div className="trip-incoming-block" role="status" aria-live="polite">
       <div className="trip-incoming-block-head">
         <div className="trip-incoming-block-body">
-          <span className="panel-kicker">Your train · not in live feed yet</span>
+          <span className="panel-kicker">Your train · scheduled (waiting for live GPS)</span>
           <p className="trip-incoming-block-eta">
             {incoming.minutesUntilLabel === "Boarding now"
               ? `At ${incoming.boardingStationName} now`

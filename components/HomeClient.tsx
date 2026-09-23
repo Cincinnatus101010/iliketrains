@@ -79,6 +79,7 @@ export function HomeClient() {
     plannedRouteCoords,
     plannedRouteFitKey,
     tripTrackFocus,
+    chosenLiveEnRoute,
     lineCounts,
   } = useLiveTrainFilters({
     allTrains,
@@ -149,7 +150,7 @@ export function HomeClient() {
         <NjLiveMap
           trains={visibleTrains}
           trainsSignature={mapTrainsSignature}
-          highlightLine={waitingForTrackedTrain ? null : activeLine}
+          highlightLine={waitingForTrackedTrain || chosenLiveEnRoute ? null : activeLine}
           tripTrackFocus={tripTrackFocus}
           incomingTrain={incomingTrain}
           padding={MAP_VIEW_PADDING}
