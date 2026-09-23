@@ -22,6 +22,8 @@ export type IncomingTrainMapHint = {
   track: string | null;
   boardingLonLat: [number, number];
   approachProgress: number;
+  /** When set, snap uses milepost after boarding; otherwise before boarding. */
+  approachFromHighDist: boolean | null;
 };
 
 export function incomingTrainMapHint(
@@ -60,5 +62,6 @@ export function incomingTrainMapHint(
     track: dep.track,
     boardingLonLat: boardingCoord,
     approachProgress: incomingApproachProgress(dep, nowMs),
+    approachFromHighDist: null,
   };
 }

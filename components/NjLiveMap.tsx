@@ -213,6 +213,7 @@ export function NjLiveMap({
               incomingTrain.route,
               incomingTrain.boardingLonLat,
               incomingTrain.approachProgress,
+              incomingTrain.approachFromHighDist === true,
             )
           : null;
       const center: [number, number] = onTrack
@@ -434,6 +435,7 @@ function syncIncomingTrainMarker(
       incoming.route,
       incoming.boardingLonLat,
       incoming.approachProgress,
+      incoming.approachFromHighDist === true,
     );
     if (onTrack) {
       lon = onTrack.lon;
