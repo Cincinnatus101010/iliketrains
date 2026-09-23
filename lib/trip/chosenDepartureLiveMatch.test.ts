@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { LiveTrain, SavedTrip } from "@/types";
-import { findLiveTrainForChosenDeparture, njTrainIdsMatch } from "./chosenDepartureLiveMatch";
+import {
+  findLiveTrainForChosenDeparture,
+  findNjTrainByFollowId,
+  njTrainIdsMatch,
+} from "./chosenDepartureLiveMatch";
 
 const live: LiveTrain = {
   id: "njt-6644",
@@ -49,5 +53,9 @@ describe("chosenDepartureLiveMatch", () => {
 
   it("matches numeric train ids with leading zeros", () => {
     expect(njTrainIdsMatch("06644", live)).toBe(true);
+  });
+
+  it("findNjTrainByFollowId matches by train number when id differs", () => {
+    expect(findNjTrainByFollowId("njt-6644", [live])).toBe(live);
   });
 });

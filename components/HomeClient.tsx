@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHomeSession } from "@/hooks/useHomeSession";
 import { useHomeUiState } from "@/hooks/useHomeUiState";
 import { useIncomingTrainMapHint } from "@/hooks/useIncomingTrainMapHint";
@@ -12,6 +12,7 @@ import { useTrackedTrain } from "@/hooks/useTrackedTrain";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
 import { mapTopCountLabel } from "@/lib/mapTopCountLabel";
+import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
 import { waitingForChosenTrainLive } from "@/lib/trip/waitingForChosenTrainLive";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
@@ -129,6 +130,19 @@ export function HomeClient() {
     [startTrip, expandDock, refresh],
   );
 
+  const mapApiError = useMemo(() => {
+    const err = apiErrors[0];
+    if (!err) return null;
+    if (
+      savedTrip?.chosenDeparture &&
+      findLiveTrainForChosenDeparture(savedTrip, allTrains) &&
+      /not in live feed/i.test(err)
+    ) {
+      return null;
+    }
+    return err;
+  }, [apiErrors, savedTrip, allTrains]);
+
   const countLabel = mapTopCountLabel(mapLiveCount, { isTracking, savedTrip });
 
   return (
@@ -167,7 +181,7 @@ export function HomeClient() {
 
         <MapPaneOverlays
           njConfigured={njConfigured}
-          apiError={apiErrors[0] ?? null}
+          apiError={mapApiError}
           navOpen={navOpen}
           onOpenNav={openNav}
         />
