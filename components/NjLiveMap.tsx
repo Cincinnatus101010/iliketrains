@@ -2,7 +2,7 @@
 
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
 import maplibregl from "maplibre-gl";
-import { type MutableRefObject, useEffect, useLayoutEffect, useRef } from "react";
+import { type MutableRefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { lngLatForIncomingOnTrack } from "@/lib/map/incomingTrainOnTrack";
 import { observeMapContainerResize } from "@/lib/map/mapResize";
@@ -57,7 +57,7 @@ export function NjLiveMap({
   const mapRef = useRef<GameMap | null>(null);
   const engineRef = useRef<TrackEngine | null>(null);
   const markersRef = useRef<TrainMarkerController | null>(null);
-  const layersReady = useRef(false);
+  const [trackLayersReady, setTrackLayersReady] = useState(false);
   const lastRouteFitKeyRef = useRef<string | null>(null);
   const lastOverviewKeyRef = useRef(0);
   const trainsRef = useRef(trains);
@@ -138,9 +138,7 @@ export function NjLiveMap({
       const onLoad = () => {
         void installTrackLayers(map).then(() => {
           ensurePlannedRouteLayer(map);
-          layersReady.current = true;
-          applyMapTrackHighlight(map, highlightLine, tripTrackFocus);
-          controller.sync(trainsRef.current);
+          setTrackLayersReady(true);
         });
       };
 
@@ -159,7 +157,7 @@ export function NjLiveMap({
 
     return () => {
       cancelled = true;
-      layersReady.current = false;
+      setTrackLayersReady(false);
       stopViewListeners?.();
       stopResizeObserve?.();
       incomingMarkerRef.current?.remove();
@@ -178,7 +176,7 @@ export function NjLiveMap({
   useLayoutEffect(() => {
     const map = mapRef.current;
     const controller = markersRef.current;
-    if (!map || !controller || !layersReady.current) return;
+    if (!map || !controller || !trackLayersReady) return;
 
     map.setPadding(padding);
     applyMapTrackHighlight(map, highlightLine, tripTrackFocus);
@@ -238,36 +236,6 @@ export function NjLiveMap({
       incomingCameraKeyRef.current = null;
     }
 
-    if (trackingTrainId && trackingTrainLiveKey && !incomingTrain) {
-      const train = trains.find((t) => t.id === trackingTrainId);
-      if (train) {
-        const initialFocus = prevFollowIdRef.current !== trackingTrainId;
-        prevFollowIdRef.current = trackingTrainId;
-        followPanFromMapRef.current = true;
-        const center: [number, number] = [train.longitude, train.latitude];
-        const zoom = Math.max(map.getZoom(), 12.5);
-        if (initialFocus) {
-          map.easeTo({ center, zoom, duration: 700, padding, essential: true });
-        } else {
-          map.jumpTo({ center, zoom, padding });
-        }
-      }
-    }
-
-    if (!trackingTrainId || !trackingTrainLiveKey || incomingTrain) {
-      if (!incomingTrain) prevFollowIdRef.current = null;
-      if (!incomingTrain && overviewKey > 0 && overviewKey !== lastOverviewKeyRef.current) {
-        lastOverviewKeyRef.current = overviewKey;
-        map.easeTo({
-          center: CENTER,
-          zoom: ZOOM,
-          duration: 700,
-          padding,
-          essential: true,
-        });
-      }
-    }
-
     ensurePlannedRouteLayer(map);
     const source = map.getSource("planned-route") as maplibregl.GeoJSONSource | undefined;
     if (source) {
@@ -285,7 +253,12 @@ export function NjLiveMap({
           geometry: { type: "LineString", coordinates: plannedRoute },
         });
 
-        if (plannedRouteFitKey && plannedRouteFitKey !== lastRouteFitKeyRef.current) {
+        const followingLiveTrain = Boolean(trackingTrainId && trackingTrainLiveKey);
+        if (
+          plannedRouteFitKey &&
+          plannedRouteFitKey !== lastRouteFitKeyRef.current &&
+          !followingLiveTrain
+        ) {
           lastRouteFitKeyRef.current = plannedRouteFitKey;
           const lons = plannedRoute.map((c) => c[0]);
           const lats = plannedRoute.map((c) => c[1]);
@@ -297,6 +270,34 @@ export function NjLiveMap({
             { padding: 48, duration: 900, maxZoom: 14 },
           );
         }
+      }
+    }
+
+    if (trackingTrainId && trackingTrainLiveKey && !incomingTrain) {
+      const train = trains.find((t) => t.id === trackingTrainId);
+      if (train) {
+        const initialFocus = prevFollowIdRef.current !== trackingTrainId;
+        prevFollowIdRef.current = trackingTrainId;
+        followPanFromMapRef.current = true;
+        const center: [number, number] = [train.longitude, train.latitude];
+        const zoom = Math.max(map.getZoom(), 12.5);
+        if (initialFocus) {
+          map.easeTo({ center, zoom, duration: 700, padding, essential: true });
+        } else {
+          map.jumpTo({ center, zoom, padding });
+        }
+      }
+    } else if (!incomingTrain) {
+      prevFollowIdRef.current = null;
+      if (overviewKey > 0 && overviewKey !== lastOverviewKeyRef.current) {
+        lastOverviewKeyRef.current = overviewKey;
+        map.easeTo({
+          center: CENTER,
+          zoom: ZOOM,
+          duration: 700,
+          padding,
+          essential: true,
+        });
       }
     }
   }, [
@@ -313,6 +314,7 @@ export function NjLiveMap({
     plannedRoute,
     plannedRouteFitKey,
     overviewKey,
+    trackLayersReady,
   ]);
 
   return <div ref={containerRef} className="nj-map" aria-label="NYC and NJ live transit map" />;

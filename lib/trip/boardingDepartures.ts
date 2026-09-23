@@ -82,11 +82,13 @@ async function mergedScheduleForBoarding(
   if (byKey.size === 0) {
     const all = await getScheduleResponse(stationCode, null);
     stationName = all.stationName || stationName;
-    error = all.error ?? error;
     for (const item of all.items) {
       byKey.set(`${item.trainId}-${item.scheduledAt}`, item);
     }
+    if (byKey.size === 0) error = all.error ?? error;
   }
+
+  if (byKey.size > 0) error = null;
 
   return { items: [...byKey.values()], stationName, error };
 }

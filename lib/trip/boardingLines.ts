@@ -1,6 +1,9 @@
 import type { PlannedRoute } from "@/types";
 import { firstRideStep } from "./firstRideStep";
 
+/** Trip origins where multiple lines share departures (avoid querying transfer-only lines elsewhere). */
+const MULTI_LINE_BOARDING_HUBS = new Set(["njt:63"]);
+
 /** NJ line codes to query at the first boarding stop (e.g. BNTN + MNE at Hoboken). */
 export function boardingScheduleLineCodes(
   route: PlannedRoute,
@@ -14,10 +17,9 @@ export function boardingScheduleLineCodes(
   }
 
   const first = firstRideStep(route);
-  // Major hubs: later legs on other lines often depart from the same origin (Hoboken → MNE or BNTN).
-  if (first?.fromKey === boardingStationKey) {
+  if (first?.fromKey === boardingStationKey && MULTI_LINE_BOARDING_HUBS.has(boardingStationKey)) {
     for (const step of rides) {
-      if (step.fromKey !== boardingStationKey) codes.add(step.route!);
+      codes.add(step.route!);
     }
   }
 

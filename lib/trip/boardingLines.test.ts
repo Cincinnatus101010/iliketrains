@@ -108,7 +108,7 @@ describe("boardingScheduleLineCodes", () => {
     expect(boardingScheduleLineCodes(route, "njt:107")).toEqual(["NEC"]);
   });
 
-  it("multi-line origin hub adds later leg lines (Secaucus with connecting Morris leg)", () => {
+  it("non-hub transfer origin only queries lines boarding there (Secaucus → Newark → Madison)", () => {
     const route: PlannedRoute = {
       stopCount: 3,
       coordinatesLonLat: [],
@@ -129,6 +129,6 @@ describe("boardingScheduleLineCodes", () => {
         }),
       ],
     };
-    expect(boardingScheduleLineCodes(route, "njt:38174").sort()).toEqual(["MNE", "PASC"]);
+    expect(boardingScheduleLineCodes(route, "njt:38174").sort()).toEqual(["PASC"]);
   });
 });
