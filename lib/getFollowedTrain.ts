@@ -7,7 +7,7 @@ function followedFromFeed(body: LiveFeedResponse, id: string): LiveFeedResponse 
     body.trains.find((t) => t.id === id) ?? findNjTrainByFollowId(id, body.trains) ?? undefined;
   return {
     trains: train ? [train] : [],
-    error: train ? body.error : (body.error ?? "Train not in live feed"),
+    error: train ? null : (body.error ?? "Train not in live feed"),
     configured: body.configured,
     updatedAt: body.updatedAt,
   };

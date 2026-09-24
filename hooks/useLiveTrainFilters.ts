@@ -5,8 +5,8 @@ import { type LineKey, lineKey } from "@/lib/lineKey";
 import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
 import { filterMapVisibleTrains, filterScopedTrains } from "@/lib/mapVisibleTrains";
 import { isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
-import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
 import { boardingNodeIndex } from "@/lib/trip/incomingTrainEstimate";
+import { resolveTrackedTrain } from "@/lib/trip/resolveTrackedTrain";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
@@ -41,10 +41,10 @@ export function useLiveTrainFilters({
 
   const chosenLiveEnRoute = useMemo(() => {
     if (!savedTrip?.chosenDeparture || !trackedTrain || !boardingStationName) return false;
-    const live = findLiveTrainForChosenDeparture(savedTrip, allTrains);
+    const live = resolveTrackedTrain(allTrains, trackingTrainId, savedTrip);
     if (!live || live.id !== trackedTrain.id) return false;
     return isEnRouteToBoarding(live, boardingStationName);
-  }, [savedTrip, allTrains, trackedTrain, boardingStationName]);
+  }, [savedTrip, allTrains, trackedTrain, boardingStationName, trackingTrainId]);
 
   const tripApproachFocus = waitingForTrackedTrain || chosenLiveEnRoute;
 

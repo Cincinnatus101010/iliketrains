@@ -1,6 +1,7 @@
 import type { LiveTrain } from "@/types";
-import { findLiveTrainForChosenDeparture } from "./chosenDepartureLiveMatch";
+import { resolveTrackedTrain } from "./resolveTrackedTrain";
 import type { SavedTrip } from "./savedTrip";
+import { trackingTrainIdForTrip } from "./tracking";
 
 /** Chosen schedule departure is set but that train is not in the merged live feed yet. */
 export function waitingForChosenTrainLive(
@@ -8,5 +9,6 @@ export function waitingForChosenTrainLive(
   allTrains: LiveTrain[],
 ): boolean {
   if (!trip?.chosenDeparture) return false;
-  return findLiveTrainForChosenDeparture(trip, allTrains) == null;
+  const trackingTrainId = trackingTrainIdForTrip(trip);
+  return resolveTrackedTrain(allTrains, trackingTrainId, trip) == null;
 }
