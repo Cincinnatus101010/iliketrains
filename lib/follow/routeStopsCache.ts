@@ -11,6 +11,9 @@ const routeStopsListeners = new Set<() => void>();
 const routeStopsInflight = new Map<string, Promise<string[]>>();
 
 export function routeStopsKey(train: LiveTrain): string {
+  if (train.network === "njt") {
+    return `njt:${train.route.toUpperCase()}`;
+  }
   return `${train.network}:${train.route}:${train.anchorStopId ?? train.stopId ?? ""}`;
 }
 

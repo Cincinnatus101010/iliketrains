@@ -4,8 +4,11 @@ import { useMemo } from "react";
 import { type LineKey, lineKey } from "@/lib/lineKey";
 import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
 import { filterMapVisibleTrains, filterScopedTrains } from "@/lib/mapVisibleTrains";
+import { isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
+import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
 import { boardingNodeIndex } from "@/lib/trip/incomingTrainEstimate";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
+import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import { type TripTrackFocus, tripTrackFocusForWaitingTrain } from "@/lib/trip/tripTrackFocus";
 import type { LiveTrain, MapScope } from "@/types";
@@ -31,19 +34,42 @@ export function useLiveTrainFilters({
 }: UseLiveTrainFiltersOptions) {
   const scopedTrains = useMemo(() => filterScopedTrains(allTrains, scope), [allTrains, scope]);
 
+  const boardingStationName = useMemo(() => {
+    if (!savedTrip) return null;
+    return tripBoardingContext(savedTrip.route, savedTrip.fromName)?.stationName ?? null;
+  }, [savedTrip]);
+
+  const chosenLiveEnRoute = useMemo(() => {
+    if (!savedTrip?.chosenDeparture || !trackedTrain || !boardingStationName) return false;
+    const live = findLiveTrainForChosenDeparture(savedTrip, allTrains);
+    if (!live || live.id !== trackedTrain.id) return false;
+    return isEnRouteToBoarding(live, boardingStationName);
+  }, [savedTrip, allTrains, trackedTrain, boardingStationName]);
+
+  const tripApproachFocus = waitingForTrackedTrain || chosenLiveEnRoute;
+
   const visibleTrains = useMemo(() => {
     if (waitingForTrackedTrain) return [];
+    if (chosenLiveEnRoute && trackedTrain) return [trackedTrain];
     let list = filterMapVisibleTrains(allTrains, scope, activeLine);
-    if (trackingTrainId && trackedTrain && !list.some((t) => t.id === trackingTrainId)) {
+    if (trackingTrainId && trackedTrain && !list.some((t) => t.id === trackedTrain.id)) {
       list = [...list, trackedTrain];
     }
     return list;
-  }, [allTrains, scope, activeLine, waitingForTrackedTrain, trackingTrainId, trackedTrain]);
+  }, [
+    allTrains,
+    scope,
+    activeLine,
+    waitingForTrackedTrain,
+    chosenLiveEnRoute,
+    trackingTrainId,
+    trackedTrain,
+  ]);
 
   const tripTrackFocus = useMemo((): TripTrackFocus | null => {
-    if (!waitingForTrackedTrain || !savedTrip) return null;
+    if (!tripApproachFocus || !savedTrip) return null;
     return tripTrackFocusForWaitingTrain(savedTrip);
-  }, [waitingForTrackedTrain, savedTrip]);
+  }, [tripApproachFocus, savedTrip]);
 
   const mapLiveCount = savedTrip
     ? scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).length
@@ -53,10 +79,10 @@ export function useLiveTrainFilters({
 
   const tripHighlightTrainIds = useMemo(() => {
     if (!savedTrip) return new Set<string>();
-    if (trackingTrainId) return new Set([trackingTrainId]);
+    if (trackingTrainId) return new Set([trackedTrain?.id ?? trackingTrainId]);
     const ids = scopedTrains.filter((t) => trainMatchesTrip(t, savedTrip)).map((t) => t.id);
     return new Set(ids);
-  }, [scopedTrains, savedTrip, trackingTrainId]);
+  }, [scopedTrains, savedTrip, trackingTrainId, trackedTrain]);
 
   const tripHighlightKey = useMemo(
     () => [...tripHighlightTrainIds].sort().join("\n"),
@@ -66,13 +92,13 @@ export function useLiveTrainFilters({
   const plannedRouteCoords = useMemo((): [number, number][] | null => {
     if (!savedTrip) return null;
     const coords = savedTrip.route.coordinatesLonLat;
-    if (!waitingForTrackedTrain || coords.length < 2) return coords;
+    if (!tripApproachFocus || coords.length < 2) return coords;
     const end = boardingNodeIndex(savedTrip.route);
     return coords.slice(0, Math.min(end, coords.length - 1) + 1);
-  }, [savedTrip, waitingForTrackedTrain]);
+  }, [savedTrip, tripApproachFocus]);
 
   const plannedRouteFitKey =
-    savedTrip && !waitingForTrackedTrain
+    savedTrip && !tripApproachFocus
       ? `${savedTrip.fromKey}:${savedTrip.toKey}:${savedTrip.savedAt}`
       : null;
 
@@ -95,6 +121,8 @@ export function useLiveTrainFilters({
     plannedRouteCoords,
     plannedRouteFitKey,
     tripTrackFocus,
+    chosenLiveEnRoute,
+    boardingStationName,
     lineCounts,
   };
 }

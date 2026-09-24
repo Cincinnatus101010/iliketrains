@@ -1,18 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHomeSession } from "@/hooks/useHomeSession";
 import { useHomeUiState } from "@/hooks/useHomeUiState";
+import { useIncomingTrainMapHint } from "@/hooks/useIncomingTrainMapHint";
 import { useLiveTrainFeeds } from "@/hooks/useLiveTrainFeeds";
 import { useLiveTrainFilters } from "@/hooks/useLiveTrainFilters";
-import { useMinuteClock } from "@/hooks/useMinuteClock";
 import { useMissedPollGrace } from "@/hooks/useMissedPollGrace";
 import { useTrackedTrain } from "@/hooks/useTrackedTrain";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
 import { mapTopCountLabel } from "@/lib/mapTopCountLabel";
-import { incomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
+import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
 import { waitingForChosenTrainLive } from "@/lib/trip/waitingForChosenTrainLive";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
@@ -61,15 +61,14 @@ export function HomeClient() {
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
     useLiveTrainFeeds({ trackingTrainId });
 
-  const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(allTrains, trackingTrainId);
+  const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(
+    allTrains,
+    trackingTrainId,
+    savedTrip,
+  );
 
   const waitingForTrackedTrain = waitingForChosenTrainLive(savedTrip, allTrains);
-  const incomingClock = useMinuteClock(waitingForTrackedTrain);
-  const incomingTrain = waitingForTrackedTrain
-    ? savedTrip
-      ? incomingTrainMapHint(savedTrip, incomingClock)
-      : null
-    : null;
+  const incomingTrain = useIncomingTrainMapHint(savedTrip, allTrains);
 
   const {
     scopedTrains,
@@ -81,6 +80,7 @@ export function HomeClient() {
     plannedRouteCoords,
     plannedRouteFitKey,
     tripTrackFocus,
+    chosenLiveEnRoute,
     lineCounts,
   } = useLiveTrainFilters({
     allTrains,
@@ -130,6 +130,19 @@ export function HomeClient() {
     [startTrip, expandDock, refresh],
   );
 
+  const mapApiError = useMemo(() => {
+    const err = apiErrors[0];
+    if (!err) return null;
+    if (
+      savedTrip?.chosenDeparture &&
+      findLiveTrainForChosenDeparture(savedTrip, allTrains) &&
+      /not in live feed/i.test(err)
+    ) {
+      return null;
+    }
+    return err;
+  }, [apiErrors, savedTrip, allTrains]);
+
   const countLabel = mapTopCountLabel(mapLiveCount, { isTracking, savedTrip });
 
   return (
@@ -151,7 +164,7 @@ export function HomeClient() {
         <NjLiveMap
           trains={visibleTrains}
           trainsSignature={mapTrainsSignature}
-          highlightLine={waitingForTrackedTrain ? null : activeLine}
+          highlightLine={waitingForTrackedTrain || chosenLiveEnRoute ? null : activeLine}
           tripTrackFocus={tripTrackFocus}
           incomingTrain={incomingTrain}
           padding={MAP_VIEW_PADDING}
@@ -168,7 +181,7 @@ export function HomeClient() {
 
         <MapPaneOverlays
           njConfigured={njConfigured}
-          apiError={apiErrors[0] ?? null}
+          apiError={mapApiError}
           navOpen={navOpen}
           onOpenNav={openNav}
         />
