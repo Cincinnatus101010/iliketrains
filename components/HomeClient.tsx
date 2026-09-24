@@ -9,10 +9,10 @@ import { useLiveTrainFeeds } from "@/hooks/useLiveTrainFeeds";
 import { useLiveTrainFilters } from "@/hooks/useLiveTrainFilters";
 import { useMissedPollGrace } from "@/hooks/useMissedPollGrace";
 import { useTrackedTrain } from "@/hooks/useTrackedTrain";
+import { trainResolvedInMergedFeed } from "@/lib/liveFeeds/filterStaleFollowErrors";
 import { TRAIN_MISSED_FEED_POLLS } from "@/lib/liveTracking";
 import { MAP_VIEW_PADDING } from "@/lib/map/mapViewPadding";
 import { mapTopCountLabel } from "@/lib/mapTopCountLabel";
-import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
 import { waitingForChosenTrainLive } from "@/lib/trip/waitingForChosenTrainLive";
 import { DockPanel } from "./DockPanel";
 import { LinesFilterDrawer } from "./LinesFilterDrawer";
@@ -59,7 +59,7 @@ export function HomeClient() {
   const [mapOverviewKey, setMapOverviewKey] = useState(0);
 
   const { allTrains, apiErrors, njConfigured, loading, validating, updatedAt, refresh } =
-    useLiveTrainFeeds({ trackingTrainId });
+    useLiveTrainFeeds({ trackingTrainId, savedTrip });
 
   const { trackedTrain, trackedTrainLiveKey } = useTrackedTrain(
     allTrains,
@@ -134,14 +134,13 @@ export function HomeClient() {
     const err = apiErrors[0];
     if (!err) return null;
     if (
-      savedTrip?.chosenDeparture &&
-      findLiveTrainForChosenDeparture(savedTrip, allTrains) &&
-      /not in live feed/i.test(err)
+      /not in live feed/i.test(err) &&
+      trainResolvedInMergedFeed(trackingTrainId, allTrains, savedTrip)
     ) {
       return null;
     }
     return err;
-  }, [apiErrors, savedTrip, allTrains]);
+  }, [apiErrors, trackingTrainId, allTrains, savedTrip]);
 
   const countLabel = mapTopCountLabel(mapLiveCount, { isTracking, savedTrip });
 
@@ -172,7 +171,7 @@ export function HomeClient() {
           plannedRouteFitKey={plannedRouteFitKey}
           tripHighlightTrainIds={tripHighlightTrainIds}
           tripHighlightKey={tripHighlightKey}
-          trackingTrainId={trackingTrainId}
+          trackingTrainId={trackedTrain?.id ?? trackingTrainId}
           trackingTrainLiveKey={trackedTrainLiveKey}
           overviewKey={mapOverviewKey}
           onTrackTrain={handleTrackTrain}

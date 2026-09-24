@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { LiveTrain, SavedTrip } from "@/types";
-import {
-  findLiveTrainForChosenDeparture,
-  findNjTrainByFollowId,
-  njTrainIdsMatch,
-} from "./chosenDepartureLiveMatch";
+import { waitingForChosenTrainLive } from "./waitingForChosenTrainLive";
 
 const live: LiveTrain = {
-  id: "njt-6644",
+  id: "njt-06644",
   network: "njt",
   route: "MNE",
   lineName: "M&E",
@@ -16,7 +12,7 @@ const live: LiveTrain = {
   longitude: -74.3,
   color: "#08A652",
   stopName: "SUMMIT",
-  trainNumber: "6644",
+  trainNumber: "06644",
   direction: null,
   trackCircuit: null,
   platformTrack: null,
@@ -46,21 +42,12 @@ const trip: SavedTrip = {
   tracking: { mode: "auto" },
 };
 
-describe("chosenDepartureLiveMatch", () => {
-  it("matches by train number when schedule line code differs from live route id", () => {
-    expect(findLiveTrainForChosenDeparture(trip, [live])).toBe(live);
+describe("waitingForChosenTrainLive", () => {
+  it("is false when the chosen train is in the feed (including padded vehicle ids)", () => {
+    expect(waitingForChosenTrainLive(trip, [live])).toBe(false);
   });
 
-  it("matches numeric train ids with leading zeros", () => {
-    expect(njTrainIdsMatch("06644", live)).toBe(true);
-  });
-
-  it("findNjTrainByFollowId matches by train number when id differs", () => {
-    expect(findNjTrainByFollowId("njt-6644", [live])).toBe(live);
-  });
-
-  it("findNjTrainByFollowId matches when vehicle id keeps leading zeros", () => {
-    const padded: LiveTrain = { ...live, id: "njt-06644", trainNumber: "06644" };
-    expect(findNjTrainByFollowId("njt-6644", [padded])).toBe(padded);
+  it("is true when the chosen train is not in the feed", () => {
+    expect(waitingForChosenTrainLive(trip, [])).toBe(true);
   });
 });

@@ -1,8 +1,15 @@
 "use client";
 
+import { useEffect, useSyncExternalStore } from "react";
+import {
+  ensureRouteStopsLoaded,
+  getRouteStopsSnapshot,
+  subscribeRouteStops,
+} from "@/lib/follow/routeStopsCache";
 import { formatNjDateTime } from "@/lib/formatTime";
 import type { LineKey } from "@/lib/lineKey";
 import { isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
+import { njTrainIdsMatch } from "@/lib/trip/chosenDepartureLiveMatch";
 import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
@@ -53,15 +60,50 @@ export function TripLivePanel({
   );
 
   const trackedTrain = trackingTrainId && trackedTrainLive ? trackedTrainLive : null;
-  const activeTrackId = trackedTrain?.id ?? trackingTrainId;
-  let listTrains = activeTrackId ? sorted.filter((t) => t.id === activeTrackId) : sorted;
-  if (trackedTrain && !listTrains.some((t) => t.id === trackedTrain.id)) {
-    listTrains = [trackedTrain, ...listTrains];
+  const depTrainId = trip.chosenDeparture?.trainId?.trim();
+  const matchesTracked = (t: LiveTrain) =>
+    Boolean(
+      trackedTrain &&
+        (t.id === trackedTrain.id ||
+          (depTrainId && njTrainIdsMatch(depTrainId, t)) ||
+          (trackingTrainId && njTrainIdsMatch(trackingTrainId.replace(/^njt-/i, ""), t))),
+    );
+
+  let listTrains: LiveTrain[];
+  if (trackedTrain) {
+    listTrains = [trackedTrain];
+  } else if (trackingTrainId) {
+    listTrains = sorted.filter(
+      (t) =>
+        t.id === trackingTrainId ||
+        (depTrainId && njTrainIdsMatch(depTrainId, t)) ||
+        njTrainIdsMatch(trackingTrainId.replace(/^njt-/i, ""), t),
+    );
+  } else {
+    listTrains = sorted;
   }
 
+  const showIncomingSchedule = Boolean(incoming && trip.chosenDeparture && !trackedTrain);
+
   const boardingName = tripBoardingContext(trip.route, trip.fromName)?.stationName ?? trip.fromName;
+
+  useEffect(() => {
+    if (trackedTrain) ensureRouteStopsLoaded(trackedTrain);
+  }, [trackedTrain]);
+
+  const trackedRouteStops = useSyncExternalStore(
+    subscribeRouteStops,
+    () => getRouteStopsSnapshot(trackedTrain),
+    () => getRouteStopsSnapshot(null),
+  );
+
   const enRouteToBoarding = Boolean(
-    trackedTrain && trip.chosenDeparture && isEnRouteToBoarding(trackedTrain, boardingName),
+    trackedTrain &&
+      trip.chosenDeparture &&
+      isEnRouteToBoarding(trackedTrain, boardingName, {
+        orderedStops: trackedRouteStops,
+        trainDestination: trip.chosenDeparture.destination,
+      }),
   );
   return (
     <div className="train-panel-inner train-panel-inner--bottom">
@@ -97,29 +139,32 @@ export function TripLivePanel({
         </button>
       </div>
 
-      {incoming && trip.chosenDeparture && (
-        <TripIncomingBlock incoming={incoming} departure={trip.chosenDeparture} />
+      {showIncomingSchedule && incoming && (
+        <TripIncomingBlock incoming={incoming} departure={trip.chosenDeparture!} />
       )}
 
       {trackedTrain && (
         <TrainFollowBlock
           train={trackedTrain}
           onStopTracking={onStopTracking}
+          throughStopName={enRouteToBoarding ? boardingName : null}
           kicker={
             enRouteToBoarding
-              ? `Train ${trip.chosenDeparture?.trainId ?? trackedTrain.label} · on the way to ${boardingName}`
-              : undefined
+              ? `Train ${trip.chosenDeparture?.trainId ?? trackedTrain.label} · live · toward ${boardingName}`
+              : "Live on NJ feed"
           }
         />
       )}
 
       <p className="panel-meta trip-dock-live-meta">
-        {incoming
-          ? "Scheduled — map shows estimated position until NJ Transit reports this train"
-          : enRouteToBoarding
-            ? "Live GPS on map · updates each feed poll"
+        {showIncomingSchedule
+          ? "Scheduled — map and stop list update from your departure time"
+          : trackedTrain
+            ? enRouteToBoarding
+              ? "Live GPS on map · stop list updates each feed poll"
+              : "Following your train · live on NJ feed"
             : trackingTrainId
-              ? "Following your train"
+              ? "Waiting for your train on the live feed"
               : `${sorted.length} live on your route${activeLine ? " · line filter on" : ""}`}
       </p>
 
@@ -131,11 +176,11 @@ export function TripLivePanel({
         {trackingTrainId ? "Your train" : "On your route now"}
       </p>
       <ul className="train-list" aria-label="Live trains on trip">
-        {listTrains.length === 0 && !incoming && (
+        {listTrains.length === 0 && !showIncomingSchedule && (
           <li className="train-list-empty">
             <p className="trip-live-empty">
               {trackingTrainId
-                ? "Your train isn’t on the map right now."
+                ? "Your train isn’t on the live feed yet."
                 : "No live trains on these lines right now."}
             </p>
           </li>
@@ -145,7 +190,7 @@ export function TripLivePanel({
             <TrainListRow
               train={train}
               highlight
-              tracking={trackingTrainId === train.id}
+              tracking={matchesTracked(train)}
               onTrack={onTrackTrain}
             />
           </li>

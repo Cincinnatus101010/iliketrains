@@ -10,7 +10,14 @@ import { type UpcomingStop, upcomingStopsForTrain } from "@/lib/follow/upcomingS
 import { trainLiveSignature } from "@/lib/map/trainSyncKey";
 import type { LiveTrain } from "@/types";
 
-export function useFollowUpcomingStops(train: LiveTrain | null): UpcomingStop[] {
+type UseFollowUpcomingStopsOptions = {
+  throughStopName?: string | null;
+};
+
+export function useFollowUpcomingStops(
+  train: LiveTrain | null,
+  opts?: UseFollowUpcomingStopsOptions,
+): UpcomingStop[] {
   useEffect(() => {
     if (train) ensureRouteStopsLoaded(train);
   }, [train]);
@@ -23,8 +30,10 @@ export function useFollowUpcomingStops(train: LiveTrain | null): UpcomingStop[] 
 
   const liveKey = train ? trainLiveSignature(train) : "";
 
+  const throughStopName = opts?.throughStopName ?? null;
+
   return useMemo(() => {
     if (!train) return [];
-    return upcomingStopsForTrain(train, ordered);
-  }, [train, ordered, liveKey]);
+    return upcomingStopsForTrain(train, ordered, { throughStopName });
+  }, [train, ordered, liveKey, throughStopName]);
 }
