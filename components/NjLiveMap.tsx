@@ -275,7 +275,9 @@ export function NjLiveMap({
     }
 
     if (trackingTrainId && trackingTrainLiveKey && !incomingTrain) {
-      const train = trains.find((t) => t.id === trackingTrainId);
+      const train =
+        trains.find((t) => t.id === trackingTrainId) ??
+        (trains.length === 1 ? trains[0] : undefined);
       if (train) {
         const initialFocus = prevFollowIdRef.current !== trackingTrainId;
         prevFollowIdRef.current = trackingTrainId;

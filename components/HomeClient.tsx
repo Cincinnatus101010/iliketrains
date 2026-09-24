@@ -171,7 +171,7 @@ export function HomeClient() {
           plannedRouteFitKey={plannedRouteFitKey}
           tripHighlightTrainIds={tripHighlightTrainIds}
           tripHighlightKey={tripHighlightKey}
-          trackingTrainId={trackingTrainId}
+          trackingTrainId={trackedTrain?.id ?? trackingTrainId}
           trackingTrainLiveKey={trackedTrainLiveKey}
           overviewKey={mapOverviewKey}
           onTrackTrain={handleTrackTrain}

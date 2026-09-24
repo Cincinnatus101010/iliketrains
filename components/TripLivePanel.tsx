@@ -1,5 +1,11 @@
 "use client";
 
+import { useEffect, useSyncExternalStore } from "react";
+import {
+  ensureRouteStopsLoaded,
+  getRouteStopsSnapshot,
+  subscribeRouteStops,
+} from "@/lib/follow/routeStopsCache";
 import { formatNjDateTime } from "@/lib/formatTime";
 import type { LineKey } from "@/lib/lineKey";
 import { isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
@@ -80,8 +86,24 @@ export function TripLivePanel({
   const showIncomingSchedule = Boolean(incoming && trip.chosenDeparture && !trackedTrain);
 
   const boardingName = tripBoardingContext(trip.route, trip.fromName)?.stationName ?? trip.fromName;
+
+  useEffect(() => {
+    if (trackedTrain) ensureRouteStopsLoaded(trackedTrain);
+  }, [trackedTrain]);
+
+  const trackedRouteStops = useSyncExternalStore(
+    subscribeRouteStops,
+    () => getRouteStopsSnapshot(trackedTrain),
+    () => getRouteStopsSnapshot(null),
+  );
+
   const enRouteToBoarding = Boolean(
-    trackedTrain && trip.chosenDeparture && isEnRouteToBoarding(trackedTrain, boardingName),
+    trackedTrain &&
+      trip.chosenDeparture &&
+      isEnRouteToBoarding(trackedTrain, boardingName, {
+        orderedStops: trackedRouteStops,
+        trainDestination: trip.chosenDeparture.destination,
+      }),
   );
   return (
     <div className="train-panel-inner train-panel-inner--bottom">

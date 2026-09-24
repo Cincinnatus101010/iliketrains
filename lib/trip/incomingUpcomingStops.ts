@@ -3,14 +3,10 @@ import type { UpcomingStop } from "@/types";
 
 const MAX_STOPS = 8;
 
-/**
- * Stops from the train’s estimated timetable position through the boarding stop,
- * along the line’s milepost order.
- */
 export function upcomingStopsAlongBoardingApproach(
   orderedStops: string[],
   boardingStationName: string,
-  trainDestination: string | null | undefined,
+  _boardingStationDestination: string | null | undefined,
   approachFromHigh: boolean | null,
   approachProgress: number,
 ): UpcomingStop[] {
@@ -19,11 +15,13 @@ export function upcomingStopsAlongBoardingApproach(
   const boardingIdx = indexOfStopName(orderedStops, boardingStationName);
   if (boardingIdx < 0) return [];
 
-  let originIdx = approachFromHigh ? 0 : orderedStops.length - 1;
-  const destRaw = trainDestination?.trim();
-  if (destRaw) {
-    const destIdx = indexOfStopName(orderedStops, destRaw);
-    if (destIdx >= 0) originIdx = destIdx;
+  let originIdx: number;
+  if (approachFromHigh === true) {
+    originIdx = orderedStops.length - 1;
+  } else if (approachFromHigh === false) {
+    originIdx = 0;
+  } else {
+    originIdx = boardingIdx > orderedStops.length / 2 ? 0 : orderedStops.length - 1;
   }
 
   const progress = Math.max(0, Math.min(1, approachProgress));
@@ -33,7 +31,7 @@ export function upcomingStopsAlongBoardingApproach(
 
   let slice = orderedStops.slice(low, high + 1);
   if (slice.length > MAX_STOPS) {
-    slice = slice.slice(slice.length - MAX_STOPS);
+    slice = slice.slice(-MAX_STOPS);
   }
 
   return slice.map((name, i) => {
