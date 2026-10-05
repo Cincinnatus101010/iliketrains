@@ -2,7 +2,7 @@
 
 import { parseLineKey } from "@/lib/lineKey";
 import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
-import { tripConnectionLabel, tripStatsHeadline } from "@/lib/trip/tripStats";
+import { tripConnectionLabel } from "@/lib/trip/tripStats";
 import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 import { TripDeparturePicker } from "./TripDeparturePicker";
 import { TripTimeline } from "./TripTimeline";
@@ -30,7 +30,6 @@ export function TripPlanPreview({
   onChooseDeparture,
   onDeparturesLoaded,
 }: TripPlanPreviewProps) {
-  const stats = route.stats;
   const isNjOrigin = parseLineKey(fromKey)?.network === "njt";
   const showDepartures = Boolean(boarding?.lineCode) || isNjOrigin;
   const connection = tripConnectionLabel(route);
@@ -39,40 +38,6 @@ export function TripPlanPreview({
 
   return (
     <div className="trip-plan-preview">
-      <div className="trip-plan-preview-hero">
-        <p className="trip-plan-preview-route">
-          <span>{fromName}</span>
-          <span className="trip-plan-preview-arrow" aria-hidden>
-            →
-          </span>
-          <span>{toName}</span>
-        </p>
-        <p
-          className={`trip-plan-connection-tag ${isDirect ? "trip-plan-connection-tag--direct" : "trip-plan-connection-tag--transfer"}`}
-        >
-          {connection}
-        </p>
-        {stats && <p className="trip-plan-preview-stats">{tripStatsHeadline(stats)}</p>}
-      </div>
-
-      {stats && stats.lines.length > 0 && (
-        <ul className="trip-plan-lines" aria-label="Lines on this trip">
-          {stats.lines.map((line) => (
-            <li key={`${line.network}:${line.route}`}>
-              <span
-                className="trip-plan-line-chip"
-                style={{
-                  borderColor: route.steps.find((s) => s.route === line.route)?.color ?? "#666",
-                }}
-              >
-                <span className="trip-plan-line-code">{line.route}</span>
-                {line.label}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
       {showDepartures ? (
         <TripDeparturePicker
           fromKey={fromKey}
