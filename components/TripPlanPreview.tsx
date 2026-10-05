@@ -10,7 +10,6 @@ import { TripTimeline } from "./TripTimeline";
 type TripPlanPreviewProps = {
   fromKey: string;
   fromName: string;
-  toName: string;
   route: PlannedRoute;
   boarding: TripBoardingSchedule | null;
   scheduleLoading?: boolean;
@@ -22,7 +21,6 @@ type TripPlanPreviewProps = {
 export function TripPlanPreview({
   fromKey,
   fromName,
-  toName,
   route,
   boarding,
   scheduleLoading = false,
