@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/app/types";
 import { fetchTripPlan } from "@/lib/fetchTripPlan";
 import { parseLineKey } from "@/lib/lineKey";
 import { listPlanStations } from "@/lib/trip/loadGraph";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { ensureRouteStats } from "@/lib/trip/tripStats";
-import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 import { StationPicker } from "./StationPicker";
 import { TripPlanPreview } from "./TripPlanPreview";
 

@@ -1,6 +1,6 @@
+import type { PlannedRoute, RouteStep, ScheduleDeparture } from "@/app/types";
 import { parseNjScheduleAtMs } from "@/lib/formatTime";
 import { dedupeUpcomingDepartures } from "@/lib/nj/dedupeDepartures";
-import type { PlannedRoute, RouteStep, ScheduleDeparture } from "@/types";
 import { firstRideStep } from "./firstRideStep";
 
 const SCHEDULE_GRACE_MS = 2 * 60 * 1000;

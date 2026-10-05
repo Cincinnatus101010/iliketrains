@@ -1,5 +1,5 @@
+import type { TripPlanResponse } from "@/app/types";
 import { getStationsResponse } from "@/lib/nj/getStations";
-import type { TripPlanResponse } from "@/types";
 import { boardingDeparturesForRoute } from "./boardingDepartures";
 import { loadTripGraphServer } from "./loadGraphServer";
 import { planTrip } from "./planTrip";

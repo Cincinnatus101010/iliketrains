@@ -1,12 +1,12 @@
 "use client";
 
-import { FollowStopList } from "@/components/FollowStopList";
+import { FollowStopList } from "@/app/components/FollowStopList";
+import type { ScheduleDeparture } from "@/app/types";
 import { useIncomingUpcomingStops } from "@/hooks/useIncomingUpcomingStops";
 import { useMinuteClock } from "@/hooks/useMinuteClock";
 import { formatNjScheduleDeparture } from "@/lib/formatTime";
 import { formatMinutesUntilBoarding } from "@/lib/trip/chosenDepartureEta";
 import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
-import type { ScheduleDeparture } from "@/types";
 
 type TripIncomingBlockProps = {
   incoming: IncomingTrainMapHint;

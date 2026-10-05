@@ -1,4 +1,4 @@
-import type { NjStation } from "@/types";
+import type { NjStation } from "@/app/types";
 import { config, njConfigured } from "./config";
 import { fetchStationList } from "./stations";
 import { getLastTokenError, getNjToken } from "./tokenService";

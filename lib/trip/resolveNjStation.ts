@@ -1,6 +1,6 @@
+import type { NjStation } from "@/app/types";
 import { parseLineKey } from "@/lib/lineKey";
 import { njtStopNameById } from "@/lib/nj/njtStopCatalog";
-import type { NjStation } from "@/types";
 
 function normalize(name: string): string {
   return name

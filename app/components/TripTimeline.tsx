@@ -1,8 +1,8 @@
 "use client";
 
+import type { RouteStep } from "@/app/types";
 import { formatWalkDistance } from "@/lib/trip/geo";
 import { tripLineLabel } from "@/lib/trip/lineLabel";
-import type { RouteStep } from "@/types";
 
 type TripTimelineProps = {
   steps: RouteStep[];

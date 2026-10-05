@@ -1,5 +1,5 @@
+import type { LiveTrain, MapScope } from "@/app/types";
 import { type LineKey, trainMatchesLineKey } from "@/lib/lineKey";
-import type { LiveTrain, MapScope } from "@/types";
 
 export function filterScopedTrains(trains: LiveTrain[], scope: MapScope): LiveTrain[] {
   if (scope === "mta") return trains.filter((t) => t.network === "mta");

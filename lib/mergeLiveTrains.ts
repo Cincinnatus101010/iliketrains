@@ -1,4 +1,4 @@
-import type { LiveTrain } from "@/types";
+import type { LiveTrain } from "@/app/types";
 
 /** Combine bulk feeds and overlay a faster single-train follow poll when present. */
 export function mergeLiveTrains(

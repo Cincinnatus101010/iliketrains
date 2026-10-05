@@ -1,4 +1,4 @@
-import { SteddyRoot } from "@/components/SteddyRoot";
+import { SteddyRoot } from "@/app/components/SteddyRoot";
 
 export default function HomePage() {
   return <SteddyRoot />;

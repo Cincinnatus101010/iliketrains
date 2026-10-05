@@ -1,7 +1,7 @@
+import type { LiveFeedResponse, LiveTrain } from "@/app/types";
 import { collectFetchErrors } from "@/lib/collectFetchErrors";
 import { mergeLiveTrains } from "@/lib/mergeLiveTrains";
 import { pickLatestUpdatedAt } from "@/lib/pickLatestUpdatedAt";
-import type { LiveFeedResponse, LiveTrain } from "@/types";
 
 export type LiveFeedQueryResult = {
   data?: LiveFeedResponse | null;

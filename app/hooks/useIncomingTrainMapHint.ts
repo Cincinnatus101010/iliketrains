@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { LiveTrain } from "@/app/types";
 import { type IncomingTrainMapHint, incomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import { resolveIncomingApproachDirection } from "@/lib/trip/resolveIncomingApproachDirection";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { waitingForChosenTrainLive } from "@/lib/trip/waitingForChosenTrainLive";
-import type { LiveTrain } from "@/types";
 import { useMinuteClock } from "./useMinuteClock";
 
 export function useIncomingTrainMapHint(

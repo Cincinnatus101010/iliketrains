@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { LiveTrain } from "@/types";
+import type { LiveTrain } from "@/app/types";
 import { isEnRouteToBoarding } from "./boardingArrival";
 
 function train(partial: Partial<LiveTrain> & Pick<LiveTrain, "stopName">): LiveTrain {

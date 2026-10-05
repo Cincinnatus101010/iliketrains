@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { LiveTrain } from "@/types";
+import type { LiveTrain } from "@/app/types";
 import { filterStaleFollowFeedErrors } from "./filterStaleFollowErrors";
 
 const live: LiveTrain = {

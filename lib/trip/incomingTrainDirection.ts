@@ -1,5 +1,5 @@
+import type { TripGraph } from "@/app/types";
 import { sortStopsAlongCoords } from "@/lib/follow/trackProject";
-import type { TripGraph } from "@/types";
 
 function normalizeStopName(name: string): string {
   return name

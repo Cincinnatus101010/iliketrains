@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useMinuteClock } from "@/hooks/useMinuteClock";
+import { useMinuteClock } from "@/app/hooks/useMinuteClock";
+import type { ScheduleDeparture, UpcomingStop } from "@/app/types";
 import { incomingApproachProgress } from "@/lib/trip/incomingTrainEstimate";
 import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import { upcomingStopsAlongBoardingApproach } from "@/lib/trip/incomingUpcomingStops";
 import { loadNjRouteStopOrder } from "@/lib/trip/loadNjRouteStopOrder";
-import type { ScheduleDeparture, UpcomingStop } from "@/types";
 
 export function useIncomingUpcomingStops(
   incoming: IncomingTrainMapHint | null,

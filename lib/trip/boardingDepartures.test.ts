@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PlannedRoute, ScheduleDeparture } from "@/types";
+import type { PlannedRoute, ScheduleDeparture } from "@/app/types";
 import { departuresForBoarding } from "./boardingDepartures";
 
 function hobokenToMadisonRoute(): PlannedRoute {

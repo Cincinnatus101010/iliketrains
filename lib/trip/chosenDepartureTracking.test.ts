@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { LiveTrain, SavedTrip } from "@/types";
+import type { LiveTrain, SavedTrip } from "@/app/types";
 import { isFollowingChosenDeparture } from "./chosenDepartureTracking";
 
 const chosenLive: LiveTrain = {

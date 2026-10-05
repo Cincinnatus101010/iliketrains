@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RouteStep } from "@/types";
+import type { RouteStep } from "@/app/types";
 import { routeStepsForDisplay, tripTransferStopNames } from "./routeDisplaySteps";
 
 describe("routeStepsForDisplay", () => {

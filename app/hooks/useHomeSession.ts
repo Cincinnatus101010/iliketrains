@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { HomeSession, SavedTrip } from "@/app/types";
 import { readSavedTrip, writeSavedTrip } from "@/lib/trip/savedTrip";
 import {
   effectiveTrackingTrainId,
@@ -8,7 +9,6 @@ import {
   tripWithTracking,
 } from "@/lib/trip/tracking";
 import { isTripExpired, savedAtIsoMs, TRIP_MAX_AGE_MS } from "@/lib/trip/tripExpiry";
-import type { HomeSession, SavedTrip } from "@/types";
 
 export type { HomeSession };
 

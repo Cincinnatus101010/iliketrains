@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { TripGraph } from "@/types";
+import type { TripGraph } from "@/app/types";
 import { parseTripGraphRaw } from "./parseTripGraph";
 
 let cached: TripGraph | null = null;

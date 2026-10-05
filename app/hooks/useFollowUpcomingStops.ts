@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
+import type { LiveTrain } from "@/app/types";
 import {
   ensureRouteStopsLoaded,
   getRouteStopsSnapshot,
@@ -8,7 +9,6 @@ import {
 } from "@/lib/follow/routeStopsCache";
 import { type UpcomingStop, upcomingStopsForTrain } from "@/lib/follow/upcomingStops";
 import { trainLiveSignature } from "@/lib/map/trainSyncKey";
-import type { LiveTrain } from "@/types";
 
 type UseFollowUpcomingStopsOptions = {
   throughStopName?: string | null;

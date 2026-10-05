@@ -1,6 +1,6 @@
+import type { LiveFeedResponse } from "@/app/types";
 import { getLiveFeedResponse, liveFeedNetworkForTrainId } from "@/lib/liveFeeds/server";
 import { findNjTrainByFollowId } from "@/lib/trip/chosenDepartureLiveMatch";
-import type { LiveFeedResponse } from "@/types";
 
 function followedFromFeed(body: LiveFeedResponse, id: string): LiveFeedResponse {
   const train =

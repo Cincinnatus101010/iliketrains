@@ -1,4 +1,4 @@
-import type { TripGraph } from "@/types";
+import type { TripGraph } from "@/app/types";
 
 type GraphNode = { name: string; lat: number; lon: number; network: string };
 type GraphEdge = { from: string; to: string; route: string };

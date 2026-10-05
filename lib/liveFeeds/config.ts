@@ -1,5 +1,5 @@
 import type { Key } from "steddy";
-import type { LiveFeedResponse } from "@/types";
+import type { LiveFeedResponse } from "@/app/types";
 
 export const NJ_LIVE_FEED_KEY = ["live-feed", "njt"] as const;
 export const MTA_LIVE_FEED_KEY = ["live-feed", "mta"] as const;

@@ -1,7 +1,7 @@
+import type { LiveTrain, ScheduleDeparture } from "@/app/types";
 import { routeFromApiLine } from "@/lib/nj/njRoutes";
 import { normalizeNjTrainId } from "@/lib/nj/normalizeTrainId";
 import { itemMatchesRoute } from "@/lib/nj/stationSchedule";
-import type { LiveTrain, ScheduleDeparture } from "@/types";
 import type { SavedTrip } from "./savedTrip";
 import { liveTrainIdForChosenDeparture } from "./tracking";
 

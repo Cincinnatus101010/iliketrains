@@ -1,4 +1,4 @@
-import type { PlannedRoute, RouteStep } from "@/types";
+import type { PlannedRoute, RouteStep } from "@/app/types";
 import { haversineMeters, walkMinutesForDistanceM } from "./geo";
 import type { TripGraph } from "./loadGraph";
 import { routeColor } from "./routeColor";

@@ -1,5 +1,5 @@
+import type { ScheduleDeparture } from "@/app/types";
 import { parseNjScheduleAtMs } from "@/lib/formatTime";
-import type { ScheduleDeparture } from "@/types";
 
 /** When the chosen train is scheduled to depart the boarding stop (includes delay). */
 export function boardingDepartureMs(dep: ScheduleDeparture, nowMs = Date.now()): number | null {

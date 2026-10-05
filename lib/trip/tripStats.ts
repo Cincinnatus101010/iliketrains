@@ -1,4 +1,4 @@
-import type { PlannedRoute, RouteStep, TripStats, TripStatsLine } from "@/types";
+import type { PlannedRoute, RouteStep, TripStats, TripStatsLine } from "@/app/types";
 import { tripLineLabel } from "./lineLabel";
 import { tripTransferStopNames } from "./routeDisplaySteps";
 

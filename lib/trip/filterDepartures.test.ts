@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { PlannedRoute, ScheduleDeparture } from "@/types";
+import type { PlannedRoute, ScheduleDeparture } from "@/app/types";
+import { parseNjScheduleAtMs } from "@/lib/formatTime";
 import {
   boardingDepartureKind,
   filterDeparturesAfterArrival,
@@ -126,7 +127,7 @@ describe("boardingDepartureKind", () => {
 });
 
 describe("filterDeparturesAfterArrival", () => {
-  const now = Date.parse("20-Sep-2026 10:00:00 AM");
+  const now = parseNjScheduleAtMs("20-Sep-2026 10:00:00 AM")!;
 
   it("keeps departures after walk time from now", () => {
     const items = [dep("20-Sep-2026 10:05:00 AM"), dep("20-Sep-2026 10:20:00 AM")];

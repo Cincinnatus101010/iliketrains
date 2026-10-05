@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import type { LiveTrain } from "@/app/types";
 import {
   ensureRouteStopsLoaded,
   getRouteStopsSnapshot,
@@ -19,7 +20,6 @@ import { trackingTrainIdForTrip } from "@/lib/trip/tracking";
 import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import { ensureRouteStats, tripConnectionLabel } from "@/lib/trip/tripStats";
-import type { LiveTrain } from "@/types";
 import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainListRow } from "./TrainListRow";
 import { TripIncomingBlock } from "./TripIncomingBlock";

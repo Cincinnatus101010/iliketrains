@@ -1,5 +1,5 @@
+import type { UpcomingStop } from "@/app/types";
 import { indexOfStopName } from "@/lib/follow/stopNames";
-import type { UpcomingStop } from "@/types";
 
 const MAX_STOPS = 8;
 

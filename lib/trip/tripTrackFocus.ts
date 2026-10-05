@@ -1,5 +1,5 @@
+import type { Network } from "@/app/types";
 import { canonicalNjRoute } from "@/lib/nj/njRoutes";
-import type { Network } from "@/types";
 import { firstRideStep } from "./firstRideStep";
 import type { SavedTrip } from "./savedTrip";
 export type TripTrackFocus = {

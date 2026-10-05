@@ -1,3 +1,4 @@
+import type { LiveTrain } from "@/app/types";
 import { displayLineName } from "@/lib/displayLine";
 import {
   trainFollowPrimary,
@@ -6,7 +7,6 @@ import {
   trainMeta,
   trainTimeLabel,
 } from "@/lib/trainDisplay";
-import type { LiveTrain } from "@/types";
 
 type TrainListRowProps = {
   train: LiveTrain;

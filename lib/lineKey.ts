@@ -1,4 +1,4 @@
-import type { LineKey, LiveTrain, MapScope, Network } from "@/types";
+import type { LineKey, LiveTrain, MapScope, Network } from "@/app/types";
 
 export type { LineKey };
 

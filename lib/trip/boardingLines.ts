@@ -1,4 +1,4 @@
-import type { PlannedRoute } from "@/types";
+import type { PlannedRoute } from "@/app/types";
 import { firstRideStep } from "./firstRideStep";
 
 /** Trip origins where multiple lines share departures (avoid querying transfer-only lines elsewhere). */

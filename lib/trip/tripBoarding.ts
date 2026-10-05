@@ -1,4 +1,4 @@
-import type { PlannedRoute, TripBoardingContext } from "@/types";
+import type { PlannedRoute, TripBoardingContext } from "@/app/types";
 import { firstRideStep } from "./firstRideStep";
 
 export type { TripBoardingContext };

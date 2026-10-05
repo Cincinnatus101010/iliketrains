@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ScheduleDeparture } from "@/types";
+import type { ScheduleDeparture } from "@/app/types";
 import { itemMatchesRoute, scheduleRowAtStation } from "./stationSchedule";
 
 function dep(partial: Partial<ScheduleDeparture>): ScheduleDeparture {
