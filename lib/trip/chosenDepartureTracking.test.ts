@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { LiveTrain, SavedTrip } from "@/types";
-import { waitingForChosenTrainLive } from "./waitingForChosenTrainLive";
+import { isFollowingChosenDeparture } from "./chosenDepartureTracking";
 
-const live: LiveTrain = {
-  id: "njt-06644",
+const chosenLive: LiveTrain = {
+  id: "njt-100",
   network: "njt",
   route: "MNE",
   lineName: "M&E",
@@ -12,7 +12,7 @@ const live: LiveTrain = {
   longitude: -74.3,
   color: "#08A652",
   stopName: "SUMMIT",
-  trainNumber: "06644",
+  trainNumber: "100",
   direction: null,
   trackCircuit: null,
   platformTrack: null,
@@ -20,6 +20,8 @@ const live: LiveTrain = {
   status: "On schedule",
   inMotion: true,
 };
+
+const otherLive: LiveTrain = { ...chosenLive, id: "njt-200", trainNumber: "200" };
 
 const trip: SavedTrip = {
   fromKey: "njt:63",
@@ -29,7 +31,7 @@ const trip: SavedTrip = {
   savedAt: new Date().toISOString(),
   route: { stopCount: 2, coordinatesLonLat: [], steps: [] },
   chosenDeparture: {
-    trainId: "6644",
+    trainId: "100",
     destination: "Dover",
     line: "Morris & Essex",
     lineCode: "ME",
@@ -39,20 +41,15 @@ const trip: SavedTrip = {
     status: "On Time",
     secLate: 0,
   },
-  tracking: { mode: "auto" },
+  tracking: { mode: "train", trainId: "njt-200" },
 };
 
-describe("waitingForChosenTrainLive", () => {
-  it("is false when the chosen train is in the feed (including padded vehicle ids)", () => {
-    expect(waitingForChosenTrainLive(trip, [live])).toBe(false);
+describe("isFollowingChosenDeparture", () => {
+  it("is false when manually following a different train", () => {
+    expect(isFollowingChosenDeparture(trip, otherLive, [chosenLive, otherLive])).toBe(false);
   });
 
-  it("is true when the chosen train is not in the feed", () => {
-    expect(waitingForChosenTrainLive(trip, [])).toBe(true);
-  });
-
-  it("is false when tracking is off but the chosen train is live", () => {
-    const offTrip: SavedTrip = { ...trip, tracking: { mode: "off" } };
-    expect(waitingForChosenTrainLive(offTrip, [live])).toBe(false);
+  it("is true when the tracked train is the chosen departure", () => {
+    expect(isFollowingChosenDeparture(trip, chosenLive, [chosenLive, otherLive])).toBe(true);
   });
 });

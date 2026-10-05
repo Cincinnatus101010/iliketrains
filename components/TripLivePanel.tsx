@@ -10,6 +10,7 @@ import { formatNjDateTime } from "@/lib/formatTime";
 import type { LineKey } from "@/lib/lineKey";
 import { isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
 import { njTrainIdsMatch } from "@/lib/trip/chosenDepartureLiveMatch";
+import { isFollowingChosenDeparture } from "@/lib/trip/chosenDepartureTracking";
 import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
@@ -26,6 +27,7 @@ import { TripTimeline } from "./TripTimeline";
 
 type TripLivePanelProps = {
   trip: SavedTrip;
+  allTrains: LiveTrain[];
   trains: LiveTrain[];
   activeLine: LineKey | null;
   trackedTrain: LiveTrain | null;
@@ -38,6 +40,7 @@ type TripLivePanelProps = {
 
 export function TripLivePanel({
   trip,
+  allTrains,
   trains,
   activeLine,
   trackedTrain: trackedTrainLive,
@@ -97,10 +100,14 @@ export function TripLivePanel({
     () => getRouteStopsSnapshot(null),
   );
 
+  const followingChosen = Boolean(
+    trackedTrain && isFollowingChosenDeparture(trip, trackedTrain, allTrains),
+  );
+
   const enRouteToBoarding = Boolean(
-    trackedTrain &&
+    followingChosen &&
       trip.chosenDeparture &&
-      isEnRouteToBoarding(trackedTrain, boardingName, {
+      isEnRouteToBoarding(trackedTrain!, boardingName, {
         orderedStops: trackedRouteStops,
         trainDestination: trip.chosenDeparture.destination,
       }),
@@ -150,7 +157,7 @@ export function TripLivePanel({
           throughStopName={enRouteToBoarding ? boardingName : null}
           kicker={
             enRouteToBoarding
-              ? `Train ${trip.chosenDeparture?.trainId ?? trackedTrain.label} · live · toward ${boardingName}`
+              ? `Train ${trackedTrain.trainNumber ?? trackedTrain.label} · live · toward ${boardingName}`
               : "Live on NJ feed"
           }
         />

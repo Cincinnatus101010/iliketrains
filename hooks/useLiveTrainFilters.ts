@@ -10,8 +10,8 @@ import { type LineKey, lineKey } from "@/lib/lineKey";
 import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
 import { filterMapVisibleTrains, filterScopedTrains } from "@/lib/mapVisibleTrains";
 import { isAtBoardingStop, isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
+import { isFollowingChosenDeparture } from "@/lib/trip/chosenDepartureTracking";
 import { boardingNodeIndex } from "@/lib/trip/incomingTrainEstimate";
-import { resolveTrackedTrain } from "@/lib/trip/resolveTrackedTrain";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
@@ -71,22 +71,13 @@ export function useLiveTrainFilters({
 
   const chosenLiveEnRoute = useMemo(() => {
     if (!savedTrip?.chosenDeparture || !trackedTrain || !boardingStationName) return false;
-    const live = resolveTrackedTrain(allTrains, trackingTrainId, savedTrip);
-    if (!live || live.id !== trackedTrain.id) return false;
-    return isEnRouteToBoarding(live, boardingStationName, {
+    if (!isFollowingChosenDeparture(savedTrip, trackedTrain, allTrains)) return false;
+    return isEnRouteToBoarding(trackedTrain, boardingStationName, {
       orderedStops: trackedRouteStops,
       trainDestination: savedTrip.chosenDeparture.destination,
       hasVisitedBoarding: visitedBoarding,
     });
-  }, [
-    savedTrip,
-    allTrains,
-    trackedTrain,
-    boardingStationName,
-    trackingTrainId,
-    trackedRouteStops,
-    visitedBoarding,
-  ]);
+  }, [savedTrip, allTrains, trackedTrain, boardingStationName, trackedRouteStops, visitedBoarding]);
 
   const tripApproachFocus = waitingForTrackedTrain || chosenLiveEnRoute;
 

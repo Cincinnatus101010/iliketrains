@@ -189,6 +189,7 @@ export function HomeClient() {
       <section className="bottom-pane glass" aria-label="Live trains">
         {!bottomCollapsed && (
           <DockPanel
+            allTrains={allTrains}
             trains={scopedTrains}
             loading={loading}
             validating={validating}
