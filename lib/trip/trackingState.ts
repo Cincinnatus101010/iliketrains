@@ -1,4 +1,4 @@
-import type { TripTrackingState } from "@/types";
+import type { TripTrackingState } from "@/app/types";
 
 export type { TripTrackingState };
 

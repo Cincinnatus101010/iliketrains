@@ -1,4 +1,4 @@
-import type { LiveTrain } from "@/types";
+import type { LiveTrain } from "@/app/types";
 import { findLiveTrainForChosenDeparture } from "./chosenDepartureLiveMatch";
 import type { SavedTrip } from "./savedTrip";
 

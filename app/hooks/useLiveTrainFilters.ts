@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import type { LiveTrain, MapScope } from "@/app/types";
 import {
   ensureRouteStopsLoaded,
   getRouteStopsSnapshot,
@@ -16,7 +17,6 @@ import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripBoardingContext } from "@/lib/trip/tripBoarding";
 import { trainMatchesTrip } from "@/lib/trip/tripLines";
 import { type TripTrackFocus, tripTrackFocusForWaitingTrain } from "@/lib/trip/tripTrackFocus";
-import type { LiveTrain, MapScope } from "@/types";
 
 type UseLiveTrainFiltersOptions = {
   allTrains: LiveTrain[];

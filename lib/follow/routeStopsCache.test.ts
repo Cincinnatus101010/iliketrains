@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { LiveTrain } from "@/types";
+import type { LiveTrain } from "@/app/types";
 
 const getOrderedStopsForTrain = vi.fn<(train: LiveTrain) => Promise<string[]>>();
 
@@ -36,6 +36,12 @@ function train(
   };
 }
 
+/** Wait until mocked route-stop fetches scheduled in this tick have settled. */
+async function flushRouteStopLoads(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 describe("routeStopsKey", () => {
   it("prefers anchorStopId over stopId", () => {
     const t = train({
@@ -52,12 +58,12 @@ describe("routeStopsKey", () => {
 describe("routeStopsCache", () => {
   beforeEach(() => {
     clearRouteStopsCache();
-    getOrderedStopsForTrain.mockReset();
+    getOrderedStopsForTrain.mockClear();
   });
 
   it("returns empty snapshot until load completes", () => {
     getOrderedStopsForTrain.mockReturnValue(new Promise(() => {}));
-    const t = train({ id: "njt-1", network: "njt", route: "NEC" });
+    const t = train({ id: "njt-1", network: "njt", route: "__pending__" });
     ensureRouteStopsLoaded(t);
     expect(getRouteStopsSnapshot(t)).toEqual([]);
   });
@@ -67,9 +73,8 @@ describe("routeStopsCache", () => {
     getOrderedStopsForTrain.mockResolvedValue(["Newark", "New York"]);
 
     ensureRouteStopsLoaded(t);
-    await vi.waitFor(() => {
-      expect(getRouteStopsSnapshot(t)).toEqual(["Newark", "New York"]);
-    });
+    await flushRouteStopLoads();
+    expect(getRouteStopsSnapshot(t)).toEqual(["Newark", "New York"]);
     expect(getOrderedStopsForTrain).toHaveBeenCalledTimes(1);
 
     ensureRouteStopsLoaded(t);
@@ -85,11 +90,12 @@ describe("routeStopsCache", () => {
     });
 
     ensureRouteStopsLoaded(t);
-    await vi.waitFor(() => expect(calls).toBeGreaterThan(0));
+    await flushRouteStopLoads();
+    expect(calls).toBeGreaterThan(0);
   });
 
   it("evicts oldest entries after 64 cached routes", async () => {
-    getOrderedStopsForTrain.mockImplementation(async (t) => [`stop-for-${t.id}`]);
+    getOrderedStopsForTrain.mockImplementation(async (tr) => [`stop-for-${tr.id}`]);
 
     const trains: LiveTrain[] = [];
     for (let i = 0; i < 65; i += 1) {
@@ -98,10 +104,8 @@ describe("routeStopsCache", () => {
       ensureRouteStopsLoaded(t);
     }
 
-    await vi.waitFor(() => {
-      expect(getRouteStopsSnapshot(trains[64]!)).toEqual(["stop-for-njt-64"]);
-    });
-
+    await flushRouteStopLoads();
+    expect(getRouteStopsSnapshot(trains[64]!)).toEqual(["stop-for-njt-64"]);
     expect(getRouteStopsSnapshot(trains[0]!)).toEqual([]);
   });
 
@@ -109,7 +113,8 @@ describe("routeStopsCache", () => {
     const t = train({ id: "njt-9", network: "njt", route: "MB" });
     getOrderedStopsForTrain.mockResolvedValue(["A", "B"]);
     ensureRouteStopsLoaded(t);
-    await vi.waitFor(() => expect(getRouteStopsSnapshot(t).length).toBe(2));
+    await flushRouteStopLoads();
+    expect(getRouteStopsSnapshot(t).length).toBe(2);
 
     clearRouteStopsCache();
     expect(getRouteStopsSnapshot(t)).toEqual([]);

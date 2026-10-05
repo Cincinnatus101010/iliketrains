@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import type { MapScope } from "@/app/types";
 import { activeLineMatchesScope, type LineKey } from "@/lib/lineKey";
-import type { MapScope } from "@/types";
 
 export function useHomeUiState() {
   const [scope, setScope] = useState<MapScope>("all");

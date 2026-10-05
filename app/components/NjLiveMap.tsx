@@ -3,6 +3,7 @@
 import { createGameMap, type GameMap } from "@iantroisi/sickmaps";
 import maplibregl from "maplibre-gl";
 import { type MutableRefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { LiveTrain } from "@/app/types";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { lngLatForIncomingOnTrack } from "@/lib/map/incomingTrainOnTrack";
 import { observeMapContainerResize } from "@/lib/map/mapResize";
@@ -11,7 +12,6 @@ import { TrainMarkerController } from "@/lib/map/trainMarkerController";
 import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import type { TripTrackFocus } from "@/lib/trip/tripTrackFocus";
 import { useStableEvent } from "@/lib/useStableEvent";
-import type { LiveTrain } from "@/types";
 
 const CENTER: [number, number] = [-74.02, 40.72];
 const ZOOM = 9.1;

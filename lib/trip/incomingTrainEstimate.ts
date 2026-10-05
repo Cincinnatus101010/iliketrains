@@ -1,4 +1,4 @@
-import type { PlannedRoute, SavedTrip, ScheduleDeparture } from "@/types";
+import type { PlannedRoute, SavedTrip, ScheduleDeparture } from "@/app/types";
 import { msUntilBoarding } from "./chosenDepartureEta";
 import { firstRideStep } from "./firstRideStep";
 import { haversineMeters } from "./geo";

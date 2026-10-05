@@ -1,4 +1,4 @@
-import type { TripPlanResponse } from "@/types";
+import type { TripPlanResponse } from "@/app/types";
 
 export async function fetchTripPlan(
   fromKey: string,

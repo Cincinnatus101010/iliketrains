@@ -1,5 +1,5 @@
+import type { ScheduleDeparture } from "@/app/types";
 import { parseNjScheduleAtMs } from "@/lib/formatTime";
-import type { ScheduleDeparture } from "@/types";
 
 const UPCOMING_GRACE_MS = 2 * 60 * 1000;
 

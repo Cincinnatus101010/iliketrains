@@ -1,4 +1,4 @@
-import type { PlannedRoute, SavedTrip, TripTrackingState } from "@/types";
+import type { PlannedRoute, SavedTrip, TripTrackingState } from "@/app/types";
 import { normalizePersistedTracking } from "./tracking";
 import { parseTripTrackingState, trackingStateFromLegacyId } from "./trackingState";
 import { activeTripOrNull } from "./tripExpiry";

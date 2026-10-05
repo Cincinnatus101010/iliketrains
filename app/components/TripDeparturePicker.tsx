@@ -2,11 +2,11 @@
 
 import { Typography } from "@iantroisi/ui";
 import { useEffect, useMemo } from "react";
+import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/app/types";
 import { formatNjScheduleDeparture } from "@/lib/formatTime";
 import { lineName } from "@/lib/nj/lines";
 import { boardingScheduleLineCodes } from "@/lib/trip/boardingLines";
 import { boardingDepartureKind, boardingDepartureKindLabel } from "@/lib/trip/filterDepartures";
-import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 
 type TripDeparturePickerProps = {
   fromKey: string;

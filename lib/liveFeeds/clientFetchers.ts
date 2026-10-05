@@ -1,6 +1,6 @@
 import type { Key } from "steddy";
+import type { LiveFeedResponse } from "@/app/types";
 import { fetchJson } from "@/lib/fetchJson";
-import type { LiveFeedResponse } from "@/types";
 import { EMPTY_LIVE_FEED, trainIdFromFollowedTrainKey } from "./config";
 
 type FetcherContext = { signal: AbortSignal };

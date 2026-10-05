@@ -1,8 +1,8 @@
+import type { NjStation, PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/app/types";
 import { parseLineKey } from "@/lib/lineKey";
 import { sortUniqueDepartureRows } from "@/lib/nj/dedupeDepartures";
 import { getScheduleResponse } from "@/lib/nj/getSchedule";
 import { itemMatchesRoute } from "@/lib/nj/stationSchedule";
-import type { NjStation, PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 import { boardingScheduleLineCodes } from "./boardingLines";
 import { filterDeparturesAfterArrival, filterDeparturesTowardTrip } from "./filterDepartures";
 import { firstRideStep } from "./firstRideStep";

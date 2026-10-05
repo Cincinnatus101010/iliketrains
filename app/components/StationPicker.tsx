@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-import type { PlanStation } from "@/types";
+import type { PlanStation } from "@/app/types";
 
 export type { PlanStation };
 

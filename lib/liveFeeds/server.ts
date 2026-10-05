@@ -1,6 +1,6 @@
+import type { LiveFeedResponse, LiveTrain, Network } from "@/app/types";
 import { getSubwayResponse } from "@/lib/mta/getSubway";
 import { getTrainsResponse } from "@/lib/nj/getTrains";
-import type { LiveFeedResponse, LiveTrain, Network } from "@/types";
 import { aggregateLiveFeeds } from "./aggregate";
 
 export async function getLiveFeedResponse(network: Network): Promise<LiveFeedResponse> {

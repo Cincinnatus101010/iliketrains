@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PlannedRoute, RouteStep } from "@/types";
+import type { PlannedRoute, RouteStep } from "@/app/types";
 import { boardingScheduleLineCodes } from "./boardingLines";
 
 function ride(

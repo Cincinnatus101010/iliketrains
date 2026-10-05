@@ -1,7 +1,7 @@
+import type { LiveTrain } from "@/app/types";
 import { resolveTrackedTrain } from "@/lib/trip/resolveTrackedTrain";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { trackingTrainIdForTrip } from "@/lib/trip/tracking";
-import type { LiveTrain } from "@/types";
 
 const STALE_FOLLOW_ERROR = /not in live feed/i;
 

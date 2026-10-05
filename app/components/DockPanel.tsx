@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { LiveTrain } from "@/app/types";
 import type { LineKey } from "@/lib/lineKey";
 import type { IncomingTrainMapHint } from "@/lib/trip/incomingTrainMapHint";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { njStationCodeFromTripKey } from "@/lib/trip/tripLines";
-import type { LiveTrain } from "@/types";
 import { SchedulePanel } from "./SchedulePanel";
 import { TrainFollowBlock } from "./TrainFollowBlock";
 import { TrainPanel } from "./TrainPanel";

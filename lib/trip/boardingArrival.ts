@@ -1,6 +1,6 @@
+import type { LiveTrain } from "@/app/types";
 import { indexOfStopName, stopNamesMatch } from "@/lib/follow/stopNames";
 import { approachFromHighDist } from "@/lib/trip/incomingTrainDirection";
-import type { LiveTrain } from "@/types";
 
 export function isAtBoardingStop(train: LiveTrain, boardingStationName: string): boolean {
   if (!train.stopName?.trim()) return false;
@@ -28,10 +28,10 @@ export function isEnRouteToBoarding(
   }
 
   const ordered = opts?.orderedStops;
-  if (ordered?.length) {
+  if (ordered?.length && opts) {
     const boardingIdx = indexOfStopName(ordered, boardingStationName);
     const currentIdx = indexOfStopName(ordered, train.stopName);
-    const destIdx = opts?.trainDestination ? indexOfStopName(ordered, opts.trainDestination) : -1;
+    const destIdx = opts.trainDestination ? indexOfStopName(ordered, opts.trainDestination) : -1;
     if (boardingIdx >= 0 && currentIdx >= 0) {
       const fromHigh = approachFromHighDist(ordered, boardingStationName, opts.trainDestination);
       if (fromHigh === true) {

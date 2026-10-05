@@ -1,5 +1,5 @@
+import type { LiveTrain, RouteStep } from "@/app/types";
 import { type LineKey, lineKey, parseLineKey, trainMatchesLineKey } from "@/lib/lineKey";
-import type { LiveTrain, RouteStep } from "@/types";
 import type { SavedTrip } from "./savedTrip";
 
 export function rideLineKeysFromTrip(trip: SavedTrip): LineKey[] {

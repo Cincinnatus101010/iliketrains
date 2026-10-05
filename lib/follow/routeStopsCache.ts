@@ -1,4 +1,4 @@
-import type { LiveTrain } from "@/types";
+import type { LiveTrain } from "@/app/types";
 import { getOrderedStopsForTrain } from "./routeStopOrder";
 
 const MAX_CACHE_ENTRIES = 64;
@@ -9,6 +9,8 @@ const EMPTY_ROUTE_STOPS: string[] = [];
 const routeStopsCache = new Map<string, string[]>();
 const routeStopsListeners = new Set<() => void>();
 const routeStopsInflight = new Map<string, Promise<string[]>>();
+/** Bumped on clear so in-flight fetches from before a reset cannot write the cache. */
+let routeStopsGeneration = 0;
 
 export function routeStopsKey(train: LiveTrain): string {
   if (train.network === "njt") {
@@ -37,9 +39,11 @@ export function ensureRouteStopsLoaded(train: LiveTrain): void {
   const key = routeStopsKey(train);
   if (routeStopsCache.has(key) || routeStopsInflight.has(key)) return;
 
+  const generation = routeStopsGeneration;
   const pending = getOrderedStopsForTrain(train).then((names) => {
-    touchCache(key, names);
     routeStopsInflight.delete(key);
+    if (generation !== routeStopsGeneration) return names;
+    touchCache(key, names);
     emitRouteStopsChange();
     return names;
   });
@@ -66,6 +70,7 @@ export function getRouteStopsSnapshot(train: LiveTrain | null): string[] {
 
 /** Clears cached route stop lists (for tests or graph reloads). */
 export function clearRouteStopsCache(): void {
+  routeStopsGeneration += 1;
   routeStopsCache.clear();
   routeStopsInflight.clear();
   emitRouteStopsChange();

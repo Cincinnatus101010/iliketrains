@@ -1,4 +1,4 @@
-import type { TripGraph } from "@/types";
+import type { TripGraph } from "@/app/types";
 import { parseTripGraphRaw } from "./parseTripGraph";
 
 export type { TripGraph };

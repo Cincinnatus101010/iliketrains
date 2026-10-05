@@ -1,4 +1,4 @@
-import type { LiveTrain, UpcomingStop } from "@/types";
+import type { LiveTrain, UpcomingStop } from "@/app/types";
 import { indexOfStopName } from "./stopNames";
 
 export type { UpcomingStop };
@@ -51,9 +51,9 @@ export function upcomingStopsForTrain(
   }
 
   const slice = orderedStops.slice(start, start + MAX_UPCOMING);
-  let mapped = slice.map((name, i) => ({
+  let mapped: UpcomingStop[] = slice.map((name, i) => ({
     name,
-    kind: i === 0 ? (train.atStation ? "at" : "next") : ("upcoming" as const),
+    kind: i === 0 ? (train.atStation ? ("at" as const) : ("next" as const)) : ("upcoming" as const),
   }));
 
   if (opts?.throughStopName) {

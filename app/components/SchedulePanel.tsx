@@ -3,11 +3,11 @@
 import { Typography } from "@iantroisi/ui";
 import { useEffect, useMemo, useState } from "react";
 import { useSteddy } from "steddy";
+import type { NjStation } from "@/app/types";
 import { fetchStationScheduleClient } from "@/lib/fetchSchedule";
 import { formatNjScheduleDeparture } from "@/lib/formatTime";
 import { type LineKey, parseLineKey } from "@/lib/lineKey";
 import { NJ_LINES } from "@/lib/nj/lines";
-import type { NjStation } from "@/types";
 
 type SchedulePanelProps = {
   activeLine: LineKey | null;

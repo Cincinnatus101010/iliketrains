@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { PlannedRoute, SavedTrip, ScheduleDeparture } from "@/types";
+import type { PlannedRoute, SavedTrip, ScheduleDeparture } from "@/app/types";
+import { parseNjScheduleAtMs } from "@/lib/formatTime";
 import { haversineMeters } from "./geo";
 import { boardingNodeIndex, estimateIncomingLngLat } from "./incomingTrainEstimate";
 
@@ -70,12 +71,12 @@ describe("estimateIncomingLngLat", () => {
     const far = estimateIncomingLngLat(
       { ...trip, chosenDeparture: dep },
       dep,
-      Date.parse("20-Sep-2026 09:00:00 AM"),
+      parseNjScheduleAtMs("20-Sep-2026 09:00:00 AM")!,
     );
     const near = estimateIncomingLngLat(
       { ...trip, chosenDeparture: dep },
       dep,
-      Date.parse("20-Sep-2026 10:29:00 AM"),
+      parseNjScheduleAtMs("20-Sep-2026 10:29:00 AM")!,
     );
     expect(far).not.toEqual(near);
     const boarding = route.coordinatesLonLat[2]!;

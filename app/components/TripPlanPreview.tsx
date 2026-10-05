@@ -1,9 +1,9 @@
 "use client";
 
+import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/app/types";
 import { parseLineKey } from "@/lib/lineKey";
 import { routeStepsForDisplay } from "@/lib/trip/routeDisplaySteps";
 import { tripConnectionLabel } from "@/lib/trip/tripStats";
-import type { PlannedRoute, ScheduleDeparture, TripBoardingSchedule } from "@/types";
 import { TripDeparturePicker } from "./TripDeparturePicker";
 import { TripTimeline } from "./TripTimeline";
 

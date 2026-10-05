@@ -1,10 +1,10 @@
+import type { LiveTrain } from "@/app/types";
 import {
   findLiveTrainForChosenDeparture,
   findNjTrainByFollowId,
 } from "@/lib/trip/chosenDepartureLiveMatch";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { liveTrainIdForChosenDeparture } from "@/lib/trip/tracking";
-import type { LiveTrain } from "@/types";
 
 function resolveByTrackingId(allTrains: LiveTrain[], trackingTrainId: string): LiveTrain | null {
   return (

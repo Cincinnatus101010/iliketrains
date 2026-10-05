@@ -1,6 +1,6 @@
+import type { LiveTrain } from "@/app/types";
 import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
-import type { LiveTrain } from "@/types";
 
 /** Map/trip boarding focus applies only when the followed vehicle is the chosen departure. */
 export function isFollowingChosenDeparture(

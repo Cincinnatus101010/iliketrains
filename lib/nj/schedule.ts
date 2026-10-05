@@ -1,4 +1,4 @@
-import type { ScheduleDeparture, ScheduleResponse } from "@/types";
+import type { ScheduleDeparture, ScheduleResponse } from "@/app/types";
 import { config } from "./config";
 import { normalizePlatformTrack } from "./platformTrack";
 import { fetchStationList } from "./stations";

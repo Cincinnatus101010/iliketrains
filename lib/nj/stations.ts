@@ -1,4 +1,4 @@
-import type { NjStation } from "@/types";
+import type { NjStation } from "@/app/types";
 import { config } from "./config";
 
 type RawStation = {
