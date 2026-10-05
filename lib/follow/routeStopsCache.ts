@@ -40,8 +40,11 @@ export function ensureRouteStopsLoaded(train: LiveTrain): void {
   if (routeStopsCache.has(key) || routeStopsInflight.has(key)) return;
 
   const generation = routeStopsGeneration;
-  const pending = getOrderedStopsForTrain(train).then((names) => {
-    routeStopsInflight.delete(key);
+  let pending: Promise<string[]>;
+  pending = getOrderedStopsForTrain(train).then((names) => {
+    if (routeStopsInflight.get(key) === pending) {
+      routeStopsInflight.delete(key);
+    }
     if (generation !== routeStopsGeneration) return names;
     touchCache(key, names);
     emitRouteStopsChange();

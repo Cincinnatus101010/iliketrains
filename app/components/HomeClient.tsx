@@ -32,7 +32,7 @@ function HomeScreen() {
     <div className={frameClassName}>
       <HomeTopBar />
       <HomeMapArea />
-      {!ui.bottomCollapsed && <HomeDock />}
+      <HomeDock />
       <HomeLinesMenu />
       <HomeTripPlanner />
     </div>
@@ -55,10 +55,10 @@ function HomeMapArea() {
 }
 
 function HomeDock() {
-  const { views } = useHome();
+  const { ui, views } = useHome();
   return (
     <section className="bottom-pane glass" aria-label="Live trains">
-      <DockPanel {...views.dock} />
+      {!ui.bottomCollapsed && <DockPanel {...views.dock} />}
     </section>
   );
 }

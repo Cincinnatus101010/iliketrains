@@ -109,6 +109,28 @@ describe("routeStopsCache", () => {
     expect(getRouteStopsSnapshot(trains[0]!)).toEqual([]);
   });
 
+  it("does not let a stale fetch remove a newer in-flight load", async () => {
+    const t = train({ id: "njt-race", network: "njt", route: "RACE" });
+    let resolveStale: (names: string[]) => void;
+    const stalePromise = new Promise<string[]>((resolve) => {
+      resolveStale = resolve;
+    });
+    getOrderedStopsForTrain.mockReturnValueOnce(stalePromise);
+
+    ensureRouteStopsLoaded(t);
+    clearRouteStopsCache();
+
+    getOrderedStopsForTrain.mockResolvedValueOnce(["fresh-stops"]);
+    ensureRouteStopsLoaded(t);
+    await flushRouteStopLoads();
+    expect(getRouteStopsSnapshot(t)).toEqual(["fresh-stops"]);
+
+    resolveStale!(["stale-stops"]);
+    await flushRouteStopLoads();
+    expect(getRouteStopsSnapshot(t)).toEqual(["fresh-stops"]);
+    expect(getOrderedStopsForTrain).toHaveBeenCalledTimes(2);
+  });
+
   it("clearRouteStopsCache drops cached lists", async () => {
     const t = train({ id: "njt-9", network: "njt", route: "MB" });
     getOrderedStopsForTrain.mockResolvedValue(["A", "B"]);
