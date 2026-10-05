@@ -1,3 +1,4 @@
+import { normalizeNjTrainId } from "@/lib/nj/normalizeTrainId";
 import type { SavedTrip } from "./savedTrip";
 import type { TripTrackingState } from "./trackingState";
 
@@ -5,9 +6,7 @@ import type { TripTrackingState } from "./trackingState";
 export function liveTrainIdForChosenDeparture(trip: SavedTrip): string | null {
   const raw = trip.chosenDeparture?.trainId?.trim();
   if (!raw) return null;
-  const num = Number.parseInt(raw, 10);
-  if (Number.isFinite(num)) return `njt-${num}`;
-  return `njt-${raw}`;
+  return `njt-${normalizeNjTrainId(raw)}`;
 }
 
 /** Which train we track (onboard / follow), if any — read only from a saved trip. */

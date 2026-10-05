@@ -15,16 +15,20 @@ import {
   NJ_LIVE_FEED_KEY,
   NJ_LIVE_FEED_POLL_MS,
 } from "@/lib/liveFeeds";
+import { filterStaleFollowFeedErrors } from "@/lib/liveFeeds/filterStaleFollowErrors";
+
+import type { SavedTrip } from "@/lib/trip/savedTrip";
 
 type UseLiveTrainFeedsOptions = {
   trackingTrainId: string | null;
+  savedTrip?: SavedTrip | null;
 };
 
 function forceRevalidate<T>(mutate: MutateFn<T>, fallback: T) {
   void mutate((current) => current ?? fallback, { revalidate: true });
 }
 
-export function useLiveTrainFeeds({ trackingTrainId }: UseLiveTrainFeedsOptions) {
+export function useLiveTrainFeeds({ trackingTrainId, savedTrip = null }: UseLiveTrainFeedsOptions) {
   const followKey = trackingTrainId ? followedTrainKey(trackingTrainId) : null;
 
   const nj = useSteddy(NJ_LIVE_FEED_KEY, fetchNjLiveFeed, {
@@ -42,15 +46,32 @@ export function useLiveTrainFeeds({ trackingTrainId }: UseLiveTrainFeedsOptions)
     refetchInterval: FOLLOWED_TRAIN_POLL_MS,
   });
 
-  const { allTrains, apiErrors, njConfigured, updatedAt } = useMemo(
-    () =>
-      aggregateLiveFeeds(
-        { data: mta.data, transportError: mta.error },
-        { data: nj.data, transportError: nj.error },
-        followKey ? { data: follow.data, transportError: follow.error } : null,
+  const { allTrains, apiErrors, njConfigured, updatedAt } = useMemo(() => {
+    const aggregated = aggregateLiveFeeds(
+      { data: mta.data, transportError: mta.error },
+      { data: nj.data, transportError: nj.error },
+      followKey ? { data: follow.data, transportError: follow.error } : null,
+    );
+    return {
+      ...aggregated,
+      apiErrors: filterStaleFollowFeedErrors(
+        aggregated.apiErrors,
+        trackingTrainId,
+        aggregated.allTrains,
+        savedTrip,
       ),
-    [follow.data, follow.error, followKey, mta.data, mta.error, nj.data, nj.error],
-  );
+    };
+  }, [
+    follow.data,
+    follow.error,
+    followKey,
+    mta.data,
+    mta.error,
+    nj.data,
+    nj.error,
+    trackingTrainId,
+    savedTrip,
+  ]);
 
   const refresh = useCallback(() => {
     forceRevalidate(nj.mutate, EMPTY_LIVE_FEED);

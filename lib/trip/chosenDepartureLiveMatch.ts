@@ -1,19 +1,11 @@
-import { canonicalNjRoute } from "@/lib/nj/njRoutes";
-import type { LiveTrain } from "@/types";
+import { routeFromApiLine } from "@/lib/nj/njRoutes";
+import { normalizeNjTrainId } from "@/lib/nj/normalizeTrainId";
+import { itemMatchesRoute } from "@/lib/nj/stationSchedule";
+import type { LiveTrain, ScheduleDeparture } from "@/types";
 import type { SavedTrip } from "./savedTrip";
 import { liveTrainIdForChosenDeparture } from "./tracking";
 
-export function normalizeNjTrainId(id: string): string {
-  const trimmed = id.trim();
-  const num = Number.parseInt(trimmed, 10);
-  if (Number.isFinite(num)) return String(num);
-  const digits = trimmed.replace(/\D/g, "");
-  if (digits) {
-    const fromDigits = Number.parseInt(digits, 10);
-    if (Number.isFinite(fromDigits)) return String(fromDigits);
-  }
-  return trimmed;
-}
+export { normalizeNjTrainId } from "@/lib/nj/normalizeTrainId";
 
 /** Resolve a follow/tracking id (e.g. njt-6644) against NJ vehicles in a feed snapshot. */
 export function findNjTrainByFollowId(trainId: string, trains: LiveTrain[]): LiveTrain | null {
@@ -33,11 +25,20 @@ export function findNjTrainByFollowId(trainId: string, trains: LiveTrain[]): Liv
   return null;
 }
 
+export function scheduleLineMatchesLiveTrain(dep: ScheduleDeparture, train: LiveTrain): boolean {
+  if (itemMatchesRoute(dep, train.route)) return true;
+  const fromLiveLine = routeFromApiLine(train.lineName);
+  if (fromLiveLine && itemMatchesRoute(dep, fromLiveLine)) return true;
+  return false;
+}
+
 export function njTrainIdsMatch(scheduleTrainId: string, live: LiveTrain): boolean {
   const want = normalizeNjTrainId(scheduleTrainId);
-  if (live.id === `njt-${want}` || live.id === want) return true;
+  if (!want) return false;
   if (live.trainNumber && normalizeNjTrainId(live.trainNumber) === want) return true;
-  return false;
+  const fromLiveId = live.id.match(/^njt-(.+)$/i)?.[1];
+  if (fromLiveId && normalizeNjTrainId(fromLiveId) === want) return true;
+  return normalizeNjTrainId(live.id) === want;
 }
 
 /** Match chosen schedule row to a vehicle in the merged live feed (exact id or train number + line). */
@@ -57,12 +58,10 @@ export function findLiveTrainForChosenDeparture(
     if (byFollowId) return byFollowId;
   }
 
-  const route = canonicalNjRoute(dep.lineCode ?? dep.lineAbbrev ?? dep.line);
-
   for (const train of allTrains) {
     if (train.network !== "njt") continue;
     if (!njTrainIdsMatch(trainId, train)) continue;
-    if (route && train.route.toUpperCase() !== route) continue;
+    if (!scheduleLineMatchesLiveTrain(dep, train)) continue;
     return train;
   }
 

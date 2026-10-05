@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { trainLiveSignature } from "@/lib/map/trainSyncKey";
-import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
+import { resolveTrackedTrain } from "@/lib/trip/resolveTrackedTrain";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import type { LiveTrain } from "@/types";
 
@@ -11,14 +11,10 @@ export function useTrackedTrain(
   trackingTrainId: string | null,
   savedTrip: SavedTrip | null = null,
 ) {
-  const trackedTrain = useMemo(() => {
-    if (!trackingTrainId) return null;
-    if (savedTrip?.chosenDeparture) {
-      const matched = findLiveTrainForChosenDeparture(savedTrip, allTrains);
-      if (matched) return matched;
-    }
-    return allTrains.find((t) => t.id === trackingTrainId) ?? null;
-  }, [allTrains, trackingTrainId, savedTrip]);
+  const trackedTrain = useMemo(
+    () => resolveTrackedTrain(allTrains, trackingTrainId, savedTrip),
+    [allTrains, trackingTrainId, savedTrip],
+  );
 
   const trackedTrainLiveKey = trackedTrain ? trainLiveSignature(trackedTrain) : null;
 

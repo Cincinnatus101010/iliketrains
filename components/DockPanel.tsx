@@ -14,6 +14,7 @@ import { TripLivePanel } from "./TripLivePanel";
 type DockTab = "trip" | "live" | "schedule";
 
 type DockPanelProps = {
+  allTrains: LiveTrain[];
   trains: LiveTrain[];
   loading: boolean;
   validating: boolean;
@@ -87,6 +88,7 @@ export function DockPanel({
       {tab === "trip" && savedTrip ? (
         <TripLivePanel
           trip={savedTrip}
+          allTrains={props.allTrains}
           trains={props.trains}
           activeLine={props.activeLine}
           trackedTrain={trackedTrain}

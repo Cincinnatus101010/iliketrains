@@ -1,11 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  ensureRouteStopsLoaded,
+  getRouteStopsSnapshot,
+  subscribeRouteStops,
+} from "@/lib/follow/routeStopsCache";
 import { type LineKey, lineKey } from "@/lib/lineKey";
 import { trainPositionsSignature } from "@/lib/map/trainSyncKey";
 import { filterMapVisibleTrains, filterScopedTrains } from "@/lib/mapVisibleTrains";
-import { isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
-import { findLiveTrainForChosenDeparture } from "@/lib/trip/chosenDepartureLiveMatch";
+import { isAtBoardingStop, isEnRouteToBoarding } from "@/lib/trip/boardingArrival";
+import { isFollowingChosenDeparture } from "@/lib/trip/chosenDepartureTracking";
 import { boardingNodeIndex } from "@/lib/trip/incomingTrainEstimate";
 import type { SavedTrip } from "@/lib/trip/savedTrip";
 import { tripBoardingContext } from "@/lib/trip/tripBoarding";
@@ -39,12 +44,40 @@ export function useLiveTrainFilters({
     return tripBoardingContext(savedTrip.route, savedTrip.fromName)?.stationName ?? null;
   }, [savedTrip]);
 
+  useEffect(() => {
+    if (trackedTrain) ensureRouteStopsLoaded(trackedTrain);
+  }, [trackedTrain]);
+
+  const trackedRouteStops = useSyncExternalStore(
+    subscribeRouteStops,
+    () => getRouteStopsSnapshot(trackedTrain),
+    () => getRouteStopsSnapshot(null),
+  );
+
+  const [visitedBoarding, setVisitedBoarding] = useState(false);
+  useEffect(() => {
+    setVisitedBoarding(false);
+  }, [savedTrip?.savedAt, trackingTrainId]);
+
+  useEffect(() => {
+    if (
+      trackedTrain &&
+      boardingStationName &&
+      isAtBoardingStop(trackedTrain, boardingStationName)
+    ) {
+      setVisitedBoarding(true);
+    }
+  }, [trackedTrain, boardingStationName]);
+
   const chosenLiveEnRoute = useMemo(() => {
     if (!savedTrip?.chosenDeparture || !trackedTrain || !boardingStationName) return false;
-    const live = findLiveTrainForChosenDeparture(savedTrip, allTrains);
-    if (!live || live.id !== trackedTrain.id) return false;
-    return isEnRouteToBoarding(live, boardingStationName);
-  }, [savedTrip, allTrains, trackedTrain, boardingStationName]);
+    if (!isFollowingChosenDeparture(savedTrip, trackedTrain, allTrains)) return false;
+    return isEnRouteToBoarding(trackedTrain, boardingStationName, {
+      orderedStops: trackedRouteStops,
+      trainDestination: savedTrip.chosenDeparture.destination,
+      hasVisitedBoarding: visitedBoarding,
+    });
+  }, [savedTrip, allTrains, trackedTrain, boardingStationName, trackedRouteStops, visitedBoarding]);
 
   const tripApproachFocus = waitingForTrackedTrain || chosenLiveEnRoute;
 
@@ -52,7 +85,7 @@ export function useLiveTrainFilters({
     if (waitingForTrackedTrain) return [];
     if (chosenLiveEnRoute && trackedTrain) return [trackedTrain];
     let list = filterMapVisibleTrains(allTrains, scope, activeLine);
-    if (trackingTrainId && trackedTrain && !list.some((t) => t.id === trackedTrain.id)) {
+    if (trackedTrain && !list.some((t) => t.id === trackedTrain.id)) {
       list = [...list, trackedTrain];
     }
     return list;

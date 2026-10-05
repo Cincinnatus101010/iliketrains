@@ -9,10 +9,17 @@ type TrainFollowBlockProps = {
   train: LiveTrain;
   onStopTracking: () => void;
   kicker?: string;
+  /** When set, only list stops up to and including this station (e.g. trip boarding). */
+  throughStopName?: string | null;
 };
 
-export function TrainFollowBlock({ train, onStopTracking, kicker }: TrainFollowBlockProps) {
-  const upcoming = useFollowUpcomingStops(train);
+export function TrainFollowBlock({
+  train,
+  onStopTracking,
+  kicker,
+  throughStopName,
+}: TrainFollowBlockProps) {
+  const upcoming = useFollowUpcomingStops(train, { throughStopName });
   const primary = trainFollowPrimary(train);
   const secondary = trainFollowSecondary(train);
 
