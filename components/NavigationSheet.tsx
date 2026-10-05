@@ -228,7 +228,6 @@ export function NavigationSheet({
               <TripPlanPreview
                 fromKey={fromKey}
                 fromName={stationName(fromKey)}
-                toName={stationName(toKey)}
                 route={preview}
                 boarding={boarding}
                 scheduleLoading={planning}
